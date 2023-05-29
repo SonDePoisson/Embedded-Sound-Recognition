@@ -1,24 +1,11 @@
 #include <Arduino.h>
 #include <math.h>
+// WiFi
 #include "WiFi.h"
-#include "tensorflow/lite/experimental/micro/kernels/all_ops_resolver.h"
-#include "tensorflow/lite/experimental/micro/micro_error_reporter.h"
-#include "tensorflow/lite/experimental/micro/micro_interpreter.h"
-#include "all_targets_model_data.h"
-
-// Create a memory pool for the nodes in the network
-constexpr int tensor_pool_size = 80 * 1024;
-uint8_t tensor_pool[tensor_pool_size];
-
-// Define the model to be used
-const tflite::Model* sine_model;
-
-// Define the interpreter
-tflite::MicroInterpreter* interpreter;
-
-// Input/Output nodes for the network
-TfLiteTensor* input;
-TfLiteTensor* output;
+// I2S
+#include "I2S_define.h"
+// TensorFlow
+#include "TensorFlow_define.h"
 
 void setup() 
 {
@@ -26,48 +13,63 @@ void setup()
   delay(3000);
   Serial.println("\n\nStarting setup...");
 
+  // start up the I2S peripheral
+  i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
+  i2s_set_pin(I2S_NUM_0, &i2s_mic_pins);
+	Serial.println("I2S driver installed!");
+
   // Load the sample sine model
-	Serial.println("Loading Tensorflow model....");
-	sine_model = tflite::GetModel(___builded_files_all_targets_tflite);
-	Serial.println("Model loaded!");
+	all_target_model = tflite::GetModel(___builded_files_all_targets_tflite);
+	Serial.println("TensorFlow model loaded!");
 
   // Define ops resolver and error reporting
 	static tflite::ops::micro::AllOpsResolver resolver;
-
 	static tflite::ErrorReporter* error_reporter;
 	static tflite::MicroErrorReporter micro_error;
 	error_reporter = &micro_error;
 
 	// Instantiate the interpreter 
 	static tflite::MicroInterpreter static_interpreter(
-		sine_model, resolver, tensor_pool, tensor_pool_size, error_reporter
+		all_target_model, resolver, tensor_pool, tensor_pool_size, error_reporter
 	);
 
 	interpreter = &static_interpreter;
 
 	// Allocate the the model's tensors in the memory pool that was created.
-	Serial.println("Allocating tensors to memory pool");
 	if(interpreter->AllocateTensors() != kTfLiteOk) {
 		Serial.println("There was an error allocating the memory...ooof");
 		return;
 	}
+	Serial.println("Memory allocation successful!");
 
 	// Define input and output nodes
 	input = interpreter->input(0);
 	output = interpreter->output(0);
-	Serial.println("Starting inferences... Input a number! ");
 
   Serial.println("Setup Complete");
+
+	Serial.println("\nSpeak into the microphone to get a prediction\n");
 }
 
 void loop() 
 {
-  // Wait for serial input to be made available and parse it as a float
-	if(Serial.available() > 0) {
-    float user_input = Serial.parseFloat();
-    	
+  // read from the I2S device
+  size_t bytes_read = 0;
+  i2s_read(I2S_NUM_0, raw_samples, sizeof(int32_t) * SAMPLE_BUFFER_SIZE, &bytes_read, portMAX_DELAY);
+  int samples_read = bytes_read / sizeof(int32_t);
+  
+  if (samples_read != SAMPLE_BUFFER_SIZE)
+  {
+    Serial.printf("Read %d samples from I2S device\n", samples_read);
+  }
+  else
+  {
     // Set the input node to the user input
-    input->data.f[0] = user_input;
+    for (int i = 0; i < samples_read; i++)
+    {
+      input->data.f[i] = raw_samples[i];
+      // Serial.printf("Input(%d): %d\n", i, input->data.f[i]);
+    }
 
     // Run inference on the input data
     if(interpreter->Invoke() != kTfLiteOk) {
@@ -76,10 +78,15 @@ void loop()
     }
 
     // Print the output of the model.
-    Serial.print("Input: ");
-    Serial.println(user_input);
-    Serial.print("Output: ");
-    Serial.println(output->data.f[0]);
-    Serial.println("");
+    for (size_t i = 0; i < LABELS_COUNT; i++)
+    {
+      if (output->data.f[i] > 0.7)
+        Serial.print("=> ");
+      Serial.printf("%-9s: %9.3f\n", labels[i], output->data.f[i]);
+    }
+
+    Serial.printf("\n\n");
+
+    delay(3000);
   }
 }
