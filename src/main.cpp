@@ -7,6 +7,57 @@
 // TensorFlow
 #include "TensorFlow_define.h"
 
+// I2S Variables 
+int32_t raw_samples[SAMPLE_BUFFER_SIZE];
+
+// TensorFlow Variables
+const char *labels[LABELS_COUNT] =
+{
+    "right",
+    "eight",
+    "cat",
+    "tree",
+    "backward",
+    "learn",
+    "bed",
+    "happy",
+    "go",
+    "dog",
+    "no",
+    "wow",
+    "follow",
+    "nine",
+    "left",
+    "stop",
+    "three",
+    "sheila",
+    "one",
+    "bird",
+    "zero",
+    "seven",
+    "up",
+    "visual",
+    "marvin",
+    "two",
+    "house",
+    "down",
+    "six",
+    "yes",
+    "on",
+    "five",
+    "forward",
+    "off",
+    "four"
+};
+constexpr int tensor_pool_size = 80 * 1024;
+uint8_t tensor_pool[tensor_pool_size];
+const tflite::Model* all_target_model;
+tflite::MicroInterpreter* interpreter;
+TfLiteTensor* input;
+TfLiteTensor* output;
+
+
+
 void setup() 
 {
   Serial.begin(115200);
@@ -14,37 +65,10 @@ void setup()
   Serial.println("\n\nStarting setup...");
 
   // start up the I2S peripheral
-  i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
-  i2s_set_pin(I2S_NUM_0, &i2s_mic_pins);
-	Serial.println("I2S driver installed!");
+  I2S_init();
 
-  // Load the sample sine model
-	all_target_model = tflite::GetModel(___builded_files_all_targets_tflite);
-	Serial.println("TensorFlow model loaded!");
-
-  // Define ops resolver and error reporting
-	static tflite::ops::micro::AllOpsResolver resolver;
-	static tflite::ErrorReporter* error_reporter;
-	static tflite::MicroErrorReporter micro_error;
-	error_reporter = &micro_error;
-
-	// Instantiate the interpreter 
-	static tflite::MicroInterpreter static_interpreter(
-		all_target_model, resolver, tensor_pool, tensor_pool_size, error_reporter
-	);
-
-	interpreter = &static_interpreter;
-
-	// Allocate the the model's tensors in the memory pool that was created.
-	if(interpreter->AllocateTensors() != kTfLiteOk) {
-		Serial.println("There was an error allocating the memory...ooof");
-		return;
-	}
-	Serial.println("Memory allocation successful!");
-
-	// Define input and output nodes
-	input = interpreter->input(0);
-	output = interpreter->output(0);
+  // start up the TensorFlow model
+  TF_init();
 
   Serial.println("Setup Complete");
 
