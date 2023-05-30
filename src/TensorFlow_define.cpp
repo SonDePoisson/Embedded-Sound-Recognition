@@ -1,6 +1,13 @@
 #include <Arduino.h>
 #include "TensorFlow_define.h"
+#include "I2S_define.h"
 
+extern const char *labels[LABELS_COUNT] =
+{
+    "right", "eight","cat","tree","backward","learn","bed","happy","go","dog","no",
+    "wow","follow","nine","left","stop","three","sheila","one","bird","zero","seven","up",
+    "visual","marvin","two","house","down","six","yes","on","five","forward","off","four"
+};
 extern constexpr int tensor_pool_size = 80 * 1024;
 extern uint8_t tensor_pool[tensor_pool_size];
 extern const tflite::Model* all_target_model;
@@ -37,4 +44,36 @@ void TF_init()
     // Define input and output nodes
 	input = interpreter->input(0);
 	output = interpreter->output(0);
+}
+
+void TF_fill_input(int32_t raw_samples[])
+{
+    for (int i = 0; i < SAMPLE_BUFFER_SIZE; i++)
+    {
+      Serial.printf("Input(%d): %d\n", i, raw_samples[i]);
+      input->data.f[i] = raw_samples[i];
+    }
+	Serial.printf("\n\n");
+}
+
+
+void TF_run_inference()
+{
+    if(interpreter->Invoke() != kTfLiteOk) {
+      Serial.println("There was an error invoking the interpreter!");
+      return;
+    }
+}
+
+void TF_print_results(float threshold)
+{
+    for (size_t i = 0; i < LABELS_COUNT; i++)
+    {
+      if (output->data.f[i] > threshold && output->data.f[i] < 0.99)
+      {
+        Serial.print("=> ");
+        Serial.printf("%-9s: %.3f\n", labels[i], output->data.f[i]);
+        exit(0);
+      }
+    }
 }

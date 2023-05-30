@@ -8,6 +8,8 @@
 #include "TensorFlow_define.h"
 // Test Sound
 #include "bird_sound.h"
+// MFCC
+#include "libmfcc.h"
 
 
 //--------------------------------------- Variables
@@ -16,12 +18,6 @@
 int32_t raw_samples[SAMPLE_BUFFER_SIZE];
 
 // TensorFlow 
-const char *labels[LABELS_COUNT] =
-{
-    "right", "eight","cat","tree","backward","learn","bed","happy","go","dog","no",
-    "wow","follow","nine","left","stop","three","sheila","one","bird","zero","seven","up",
-    "visual","marvin","two","house","down","six","yes","on","five","forward","off","four"
-};
 constexpr int tensor_pool_size = 80 * 1024;
 uint8_t tensor_pool[tensor_pool_size];
 const tflite::Model* all_target_model;
@@ -67,37 +63,19 @@ void loop()
   // i2s_read(I2S_NUM_0, raw_samples, sizeof(int32_t) * SAMPLE_BUFFER_SIZE, &bytes_read, portMAX_DELAY);
   // int samples_read = bytes_read / sizeof(int32_t);
 
+
+
   while(offset < bird_sound_len - SAMPLE_BUFFER_SIZE)
   {  
     Serial.printf("New Fill\n\n");
 
     fill_buffer(raw_samples, bird_sound, SAMPLE_BUFFER_SIZE, offset);
 
-    // Set the input node to the user input
-    for (int i = 0; i < SAMPLE_BUFFER_SIZE; i++)
-    {
-      Serial.printf("Input(%d): %d\n", i, raw_samples[i]);
-      input->data.f[i] = raw_samples[i];
-    }
+    TF_fill_input(raw_samples);
 
-    Serial.printf("\n\n");
+    TF_run_inference();
 
-    // Run inference on the input data
-    if(interpreter->Invoke() != kTfLiteOk) {
-      Serial.println("There was an error invoking the interpreter!");
-      return;
-    }
-
-    // Print the output of the model.
-    for (size_t i = 0; i < LABELS_COUNT; i++)
-    {
-      if (output->data.f[i] > 0.6 && output->data.f[i] < 0.99)
-      {
-        Serial.print("=> ");
-        Serial.printf("%-9s: %.3f\n", labels[i], output->data.f[i]);
-        exit(0);
-      }
-    }
+    TF_print_results(0.6);
 
     offset += SAMPLE_BUFFER_SIZE;
   }

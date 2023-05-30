@@ -6,3 +6,12 @@
 #define LABELS_COUNT 35
 
 void TF_init();
+
+// Set the input node to the user input
+void TF_fill_input(int32_t raw_samples[]);
+
+// Run inference on the input data
+void TF_run_inference();
+
+// Print the results of the inference if the output is above the threshold
+void TF_print_results(float threshold);
