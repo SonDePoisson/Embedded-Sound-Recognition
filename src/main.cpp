@@ -9,7 +9,6 @@
 // Test Sound
 #include "bird_sound.h"
 // MFCC
-#include "libmfcc.h"
 
 
 //--------------------------------------- Variables
@@ -24,6 +23,9 @@ const tflite::Model* all_target_model;
 tflite::MicroInterpreter* interpreter;
 TfLiteTensor* input;
 TfLiteTensor* output;
+
+// MFCC
+
 
 //--------------------------------------- Functions
 
@@ -44,20 +46,27 @@ void setup()
   delay(3000);
   Serial.println("\n\nStarting setup...");
 
-  // start up the I2S peripheral
-  I2S_init();
+  // // start up the I2S peripheral
+  // I2S_init();
 
-  // start up the TensorFlow model
-  TF_init();
+  // // start up the TensorFlow model
+  // TF_init();
 
-  Serial.println("Setup Complete");
-	Serial.println("\nSpeak into the microphone to get a prediction\n");
+  // Serial.println("Setup Complete");
+	// Serial.println("\nSpeak into the microphone to get a prediction\n");
+
+
+  std::string wavFile = "/Users/clementpoisson/Desktop/CNN_MQTT_UFPR/data_speech_commands_v0.02/bird/0a9f9af7_nohash_0.wav";
+  
 }
 
 int offset = 0;
 
 void loop() 
 {
+  delay(1000); 
+
+  
   // // read from the I2S device
   // size_t bytes_read = 0;
   // i2s_read(I2S_NUM_0, raw_samples, sizeof(int32_t) * SAMPLE_BUFFER_SIZE, &bytes_read, portMAX_DELAY);
@@ -65,21 +74,21 @@ void loop()
 
 
 
-  while(offset < bird_sound_len - SAMPLE_BUFFER_SIZE)
-  {  
-    Serial.printf("New Fill\n\n");
+  // while(offset < bird_sound_len - SAMPLE_BUFFER_SIZE)
+  // {  
+  //   Serial.printf("New Fill\n\n");
 
-    fill_buffer(raw_samples, bird_sound, SAMPLE_BUFFER_SIZE, offset);
+  //   fill_buffer(raw_samples, bird_sound, SAMPLE_BUFFER_SIZE, offset);
 
-    TF_fill_input(raw_samples);
+  //   TF_fill_input(raw_samples);
 
-    TF_run_inference();
+  //   TF_run_inference();
 
-    TF_print_results(0.6);
+  //   TF_print_results(0.6);
 
-    offset += SAMPLE_BUFFER_SIZE;
-  }
+  //   offset += SAMPLE_BUFFER_SIZE;
+  // }
   
-  Serial.printf("None of the labels found\n");
-  exit(0);
+  // Serial.printf("None of the labels found\n");
+  // exit(0);
 }
