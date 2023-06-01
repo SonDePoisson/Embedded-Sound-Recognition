@@ -6,8 +6,6 @@
 #include "I2S_define.h"
 // TensorFlow
 #include "TensorFlow_define.h"
-// Test Sound
-#include "bird_sound.h"
 // Audio
 #include "Audio.h"
 
@@ -24,18 +22,11 @@ tflite::MicroInterpreter* interpreter;
 TfLiteTensor* input;
 TfLiteTensor* output;
 
-// MFCC
-
+// Audio
+struct signal *signal_in;
 
 //--------------------------------------- Functions
 
-void fill_buffer(int32_t raw_samples[], const unsigned char bird_sound[], int length, int offset)
-{
-  for (int i = 0; i < length; i++)
-  {
-    raw_samples[i] = (int32_t)bird_sound[i + offset];
-  }
-}
 
 //--------------------------------------- Main
 
@@ -55,9 +46,15 @@ void setup()
   // Serial.println("Setup Complete");
 	// Serial.println("\nSpeak into the microphone to get a prediction\n");
 
+  wavefile_read((char *)"data_speech_commands_v0.02/bird/0a396ff2_nohash_0.wav", signal_in);
 
-  std::string wavFile = "/Users/clementpoisson/Desktop/CNN_MQTT_UFPR/data_speech_commands_v0.02/bird/0a9f9af7_nohash_0.wav";
-  
+  Serial.printf("Signal size: %d\n\n", signal_in->size);
+
+  for (int i = 0; i < signal_in->size; i++)
+  {
+    Serial.printf("Data : %f\n", signal_in->data[i]);
+  }
+
 }
 
 int offset = 0;

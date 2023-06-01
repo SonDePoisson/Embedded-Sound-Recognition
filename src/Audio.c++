@@ -1,13 +1,6 @@
 #include <Arduino.h>
 #include "Audio.h"
 
-// Taille de l'en-tête wav
-#define WAV_HEADER_SIZE 0x2c
-
-// Position et taille du champs FILESIZE dans l'en-tête
-#define WAV_FILESIZE_OFFSET 0x04
-#define WAV_FILESIZE_LENGTH 0x04
-
 void exit_if(int cond, const char *prefix)
 {
   if (!cond) return;
@@ -59,20 +52,6 @@ unsigned long wavefile_length(unsigned char header[])
               - WAV_HEADER_SIZE + WAV_FILESIZE_OFFSET + WAV_FILESIZE_OFFSET;
 }
 
-/**
- * Lit le contenu du signal depuis `fd` et stocke le resultat dans `signal`.
- * La zone mémoire pointée par signal est supposée assez grande pour stocker
- * l'intégralité du signal.  Retourne -1 en cas d'erreur.
- *
- * RQ: Comment s'assurer de ne pas faire de buffer-overflow ? (si vous voyez
- * comment, le faire)
- */
-int wavefile_read_signal(FILE *fd, double *signal)
-{
-    // TODO but after `wavefile_read`
-    return -1;
-}
-
 ////////// Lecture/Écriture de fichier WAV ///////////
 /**
  * Lit un fichier WAV depuis le descripteur `fd`. L'en-tête du fichier sera
@@ -82,24 +61,21 @@ int wavefile_read_signal(FILE *fd, double *signal)
  * Cette fonction retourne le fichier, qui sera stocké dans tableau allouée par
  * malloc (pensez à libérer). En cas d'erreur elle retournera NULL
  */
-double *wavefile_read(FILE *fd, unsigned char header[], long *signal_size)
+void wavefile_read(char *file, struct signal *signal)
 {
-  // TODO
+  FILE *fd = fopen(file, "w");
   // - lire l'en-tête
-  wavefile_read_header(fd, header);
+  wavefile_read_header(fd, signal->header);
   // - Extraire la taille
-  long size = wavefile_length(header);
+  signal->size = wavefile_length(signal->header);
   // fprintf(stderr, "Read file of length %lu\n", size);
   // - Allouer un tableau de taille*double
-  double *signal = malloc(size*sizeof(double));
+  signal->data = (double *) malloc(signal->size*sizeof(double));
   // - Lire le signal
-  for (unsigned long i = 0; i < size; i++)
+  for (unsigned long i = 0; i < signal->size; i++)
   {
-    signal[i] = fgetc(fd);
+    signal->data[i] = fgetc(fd);
   }
-  // - Retourner ce qui doit l'être
-  *signal_size = size;
-  return signal;
 }
 /**
  * Cette fonction écrit le signal `data` de taille `signal_size`, dans un
@@ -128,7 +104,7 @@ double *gaussienne(double sigma, int *taille)
   if (taille)
     *taille = m; // Stocke la taille
 
-  gauss = malloc(m * sizeof(double));
+  gauss = (double *) malloc(m * sizeof(double));
 
   for (int i = 0; i < m; i++) {
     double x = (double) (i - m / 2) / sigma; // centrage sur m/2
@@ -139,24 +115,6 @@ double *gaussienne(double sigma, int *taille)
   for (int i = 0; i < m; i++)
     gauss[i] /= s;  // normalisation
   return gauss;
-}
-
-/**
- * Etant donné un signal `in` de taille `size`, rempli
- * le signal out en `moyenneant` trois points
- *
- * RQ: Attentions aux extrémitées
- */
-void mean3(int size, const double *in, double* out)
-{
-  out[0] = in[0];
-  out[size] = in[size];
-
-  // TODO
-  for (unsigned long i = 1; i < size-1; i++)
-  {
-    out[i] = (in[i-1] + in[i] + in[i+1])/3;
-  }
 }
 
 /**
@@ -198,13 +156,4 @@ void filter_signal(int size, const double *in, double *out, int filter_size, con
   {
     out[i] = convolute(filter_size, &in[i], filter);
   }
-}
-
-/**
- * Un exemple de filtre moyenneur
- */
-void mean3_bis(int size, const double *in, double* out)
-{
-  double filter[3] = {1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0};
-  filter_signal(size, in, out, 3, filter);
 }
