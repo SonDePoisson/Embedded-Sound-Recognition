@@ -4,8 +4,8 @@
 void exit_if(int cond, const char *prefix)
 {
   if (!cond) return;
-  perror(prefix);
-  exit(EXIT_FAILURE);
+  Serial.println(prefix);
+  exit(0);
 }
 
 // Fonctions utilisé pour la lecture du signal
@@ -13,28 +13,12 @@ void exit_if(int cond, const char *prefix)
  * Extract `size` bytes as little endian value from `data` (starting at `offset`)
  * Return the native representation.
  */
-long long extract_le2n(int size, unsigned char data[], int offset)
+long long extract_le2n(int size, char data[], int offset)
 {
   unsigned long long res = 0;
   while (size --)
     res = res << 8 | data[offset + size];
   return res;
-}
-
-/**
- * Lit l'en-tête d'un fichier `WAV` depuis le descripteur de ficher `fd` et
- * stocke le resultat dans `header`.
- * Retourne -1 en cas d'erreur.
- *
- * RQ: La taille de l'en-tête est WAV_HEADER_SIZE
- */
-int wavefile_read_header(FILE *fd, unsigned char header[])
-{
-    if(fread(header, WAV_HEADER_SIZE, 1, fd) < 1)
-    {
-        return -1;
-    }
-    return 0;
 }
 
 /**
@@ -46,10 +30,22 @@ int wavefile_read_header(FILE *fd, unsigned char header[])
  * champ taille (il faudra donc le corriger de WAV_HEADER_SIZE -
  * WAV_FILESIZE_OFFSET - WAV_FILESIZE_LENGTH)
  */
-unsigned long wavefile_length(unsigned char header[])
+unsigned long wavefile_length(char header[])
 {
     return extract_le2n(WAV_FILESIZE_LENGTH, header, WAV_FILESIZE_OFFSET) 
               - WAV_HEADER_SIZE + WAV_FILESIZE_OFFSET + WAV_FILESIZE_OFFSET;
+}
+
+void print_file_parameters(File fd)
+{
+  Serial.printf("\n");
+  Serial.printf("File type: %s\n", fd.isDirectory() ? "Directory" : "File");
+  exit_if(fd.isDirectory(), "File is a directory");
+  
+  Serial.printf("File name: %s\n", fd.name());
+
+  Serial.printf("File size: %d\n", fd.size());
+  exit_if(fd.size() == 0, "File Empty");
 }
 
 ////////// Lecture/Écriture de fichier WAV ///////////
@@ -62,20 +58,28 @@ unsigned long wavefile_length(unsigned char header[])
  * malloc (pensez à libérer). En cas d'erreur elle retournera NULL
  */
 void wavefile_read(char *file, struct signal *signal)
-{
-  FILE *fd = fopen(file, "w");
+{ 
+  exit_if(!SPIFFS.begin(), "An Error has occurred while mounting SPIFFS");
+  
+  // - Ouvrir le fichier  
+  exit_if(!SPIFFS.exists(file), "File doesn't exist");
+  File fd = SPIFFS.open(file, FILE_READ, false);
+  exit_if(!fd, "Error while opening file");
+  print_file_parameters(fd);
+
   // - lire l'en-tête
-  wavefile_read_header(fd, signal->header);
+  fd.readBytes(signal->header, WAV_HEADER_SIZE);
   // - Extraire la taille
   signal->size = wavefile_length(signal->header);
-  // fprintf(stderr, "Read file of length %lu\n", size);
+  Serial.printf("WAV size : %d\n", signal->size);
   // - Allouer un tableau de taille*double
-  signal->data = (double *) malloc(signal->size*sizeof(double));
-  // - Lire le signal
-  for (unsigned long i = 0; i < signal->size; i++)
-  {
-    signal->data[i] = fgetc(fd);
-  }
+  signal->data = (char *) malloc(signal->size*sizeof(char));
+  // - Lire les données
+  fd.readBytes(signal->data + WAV_HEADER_SIZE, signal->size - WAV_HEADER_SIZE);
+  // - Fermer le fichier
+  fd.close();
+
+  Serial.printf("WAV file well opened\n\n");
 }
 /**
  * Cette fonction écrit le signal `data` de taille `signal_size`, dans un

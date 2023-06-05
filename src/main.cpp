@@ -23,7 +23,7 @@ TfLiteTensor* input;
 TfLiteTensor* output;
 
 // Audio
-struct signal *signal_in;
+struct signal signal_in;
 
 //--------------------------------------- Functions
 
@@ -46,15 +46,7 @@ void setup()
   // Serial.println("Setup Complete");
 	// Serial.println("\nSpeak into the microphone to get a prediction\n");
 
-  wavefile_read((char *)"data_speech_commands_v0.02/bird/0a396ff2_nohash_0.wav", signal_in);
-
-  Serial.printf("Signal size: %d\n\n", signal_in->size);
-
-  for (int i = 0; i < signal_in->size; i++)
-  {
-    Serial.printf("Data : %f\n", signal_in->data[i]);
-  }
-
+  wavefile_read((char *)"/sound.wav", &signal_in);
 }
 
 int offset = 0;
@@ -69,23 +61,10 @@ void loop()
   // i2s_read(I2S_NUM_0, raw_samples, sizeof(int32_t) * SAMPLE_BUFFER_SIZE, &bytes_read, portMAX_DELAY);
   // int samples_read = bytes_read / sizeof(int32_t);
 
-
-
-  // while(offset < bird_sound_len - SAMPLE_BUFFER_SIZE)
-  // {  
-  //   Serial.printf("New Fill\n\n");
-
-  //   fill_buffer(raw_samples, bird_sound, SAMPLE_BUFFER_SIZE, offset);
-
-  //   TF_fill_input(raw_samples);
-
-  //   TF_run_inference();
-
-  //   TF_print_results(0.6);
-
-  //   offset += SAMPLE_BUFFER_SIZE;
-  // }
+  TF_fill_input(raw_samples);
+  TF_run_inference();
+  TF_print_results(0.6);
   
-  // Serial.printf("None of the labels found\n");
+  // Serial.printf("one of the labels found\n");
   // exit(0);
 }

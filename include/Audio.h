@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <SPIFFS.h>
 
 // Taille de l'en-tête wav
 #define WAV_HEADER_SIZE 0x2c
@@ -43,12 +44,14 @@ struct __attribute__((__packed__)) wave_audio_header {
 };
 
 struct signal {
-	double *data;
+	char *data;
 	long size; 
-	unsigned char header[WAV_HEADER_SIZE];
+	char header[WAV_HEADER_SIZE];
 };
 
 // #endif
+
+void exit_if(int cond, const char *prefix);
 
 ////////// Lecture/Écriture de fichier WAV ///////////
 
