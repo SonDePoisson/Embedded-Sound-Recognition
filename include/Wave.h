@@ -58,12 +58,12 @@ void exit_if(int cond, const char *prefix);
 
 void wavefile_read(char *file, struct signal *signal);
 
-void wavefile_write(FILE *fd, unsigned char header[], long signal_size, const double *data);
+void wavefile_write(char *file, struct signal *signal);
 
 ////////// Traitement du signal ///////////
 
-double *gaussienne(double sigma, int *taille);
+char *gaussienne(char sigma, int *taille);
 
-double convolute(int filter_size, const double *data, const double *filter);
+char convolute(int filter_size, const char *data, const char *filter);
 
-void filter_signal(int size, const double *in, double *out, int filter_size, const double *filter);
+void filter_signal(int size, const char *in, char *out, int filter_size, const char *filter);

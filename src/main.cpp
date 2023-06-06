@@ -6,8 +6,10 @@
 #include "I2S_define.h"
 // TensorFlow
 #include "TensorFlow_define.h"
-// Audio
-#include "Audio.h"
+// Wave
+#include "Wave.h"
+// MFCC
+#include "MFCC.hpp"
 
 //--------------------------------------- Variables
 
@@ -24,6 +26,8 @@ TfLiteTensor* output;
 
 // Audio
 struct signal signal_in;
+
+// MFCC
 
 //--------------------------------------- Functions
 
@@ -43,10 +47,9 @@ void setup()
   // // start up the TensorFlow model
   // TF_init();
 
-  // Serial.println("Setup Complete");
-	// Serial.println("\nSpeak into the microphone to get a prediction\n");
-
   wavefile_read((char *)"/sound.wav", &signal_in);
+
+
 }
 
 int offset = 0;
