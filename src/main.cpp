@@ -10,7 +10,6 @@
 #include "Wave.h"
 // MFCC
 
-
 //--------------------------------------- Variables
 
 // I2S  
@@ -26,6 +25,8 @@ TfLiteTensor* output;
 
 // Audio
 struct signal signal_in;
+
+// MFCC
 
 //--------------------------------------- Functions
 

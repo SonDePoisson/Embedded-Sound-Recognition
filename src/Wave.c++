@@ -29,7 +29,6 @@ unsigned long wavefile_length(char header[])
               - WAV_HEADER_SIZE + WAV_FILESIZE_OFFSET + WAV_FILESIZE_OFFSET;
 }
 
-
 void print_file_parameters(File fd)
 {
   Serial.printf("\n");
