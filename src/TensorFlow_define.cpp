@@ -2,7 +2,7 @@
 #include "TensorFlow_define.h"
 #include "I2S_define.h"
 
-extern const char *labels[LABELS_COUNT] =
+const char *labels[LABELS_COUNT] =
 {
     "right", "eight","cat","tree","backward","learn","bed","happy","go","dog","no",
     "wow","follow","nine","left","stop","three","sheila","one","bird","zero","seven","up",

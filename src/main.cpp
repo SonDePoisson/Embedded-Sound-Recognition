@@ -6,8 +6,10 @@
 #include "I2S_define.h"
 // TensorFlow
 #include "TensorFlow_define.h"
-// Audio
-#include "Audio.h"
+// Wave
+#include "Wave.h"
+// MFCC
+
 
 //--------------------------------------- Variables
 
@@ -27,6 +29,12 @@ struct signal signal_in;
 
 //--------------------------------------- Functions
 
+void exit_if(int cond, const char *prefix)
+{
+  if (!cond) return;
+  Serial.println(prefix);
+  exit(0);
+}
 
 //--------------------------------------- Main
 
@@ -36,6 +44,7 @@ void setup()
   Serial.begin(115200);
   delay(3000);
   Serial.println("\n\nStarting setup...");
+  exit_if(!SPIFFS.begin(), "An Error has occurred while mounting SPIFFS");
 
   // // start up the I2S peripheral
   // I2S_init();
@@ -43,10 +52,10 @@ void setup()
   // // start up the TensorFlow model
   // TF_init();
 
-  // Serial.println("Setup Complete");
-	// Serial.println("\nSpeak into the microphone to get a prediction\n");
-
   wavefile_read((char *)"/sound.wav", &signal_in);
+
+  
+	exit(0);
 }
 
 int offset = 0;
