@@ -9,6 +9,7 @@
 // Wave
 #include "Wave.h"
 // MFCC
+#include "../python_mfcc_gen_from_clement/mfcclib.h"
 
 //--------------------------------------- Variables
 

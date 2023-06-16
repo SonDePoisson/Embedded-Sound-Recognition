@@ -1,7 +1,7 @@
 #include "tensorflow/lite/experimental/micro/kernels/all_ops_resolver.h"
 #include "tensorflow/lite/experimental/micro/micro_error_reporter.h"
 #include "tensorflow/lite/experimental/micro/micro_interpreter.h"
-#include "all_targets_model_data.h"
+#include "../python_mfcc_gen_from_clement/all_targets_model_data.h"
 
 #define LABELS_COUNT 35
 

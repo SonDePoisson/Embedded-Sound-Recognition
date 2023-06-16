@@ -18,7 +18,7 @@ extern TfLiteTensor* output;
 void TF_init()
 {
     // Load the sample sine model
-	all_target_model = tflite::GetModel(___builded_files_all_targets_tflite);
+	all_target_model = tflite::GetModel(all_targets_tflite);
 	Serial.println("TensorFlow model loaded!");
 
     // Define ops resolver and error reporting
