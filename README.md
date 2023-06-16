@@ -7,7 +7,6 @@ This project is devided in 2 parts :
 
 
 TODO :
-- Run MFCC_from_C in MFCC.ipynb to check if it's working 
 - Run Classification & TFLite_converter
 
 - Fix wavefile_read() in the main to get int16_t data and then treat it with the same MFCC than lolis

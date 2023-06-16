@@ -238,7 +238,6 @@ v_d mfcc_processFrame(double *samples, int N) { // size_t N) {
 	for (int i=0; i<N; i++)
 	{
 		frame.push_back(samples[i]);
-		printf("%f\n", samples[i]);
 	}
 	prevsamples.assign(frame.begin()+frameShiftSamples, frame.end());
 
