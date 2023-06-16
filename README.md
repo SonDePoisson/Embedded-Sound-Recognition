@@ -7,7 +7,7 @@ This project is devided in 2 parts :
 
 
 TODO :
-- Run Classification & TFLite_converter
+-  Python part OK : have to check it in the ESP32
 
 - Fix wavefile_read() in the main to get int16_t data and then treat it with the same MFCC than lolis
 - Pass it through the TFLite model and get the result
