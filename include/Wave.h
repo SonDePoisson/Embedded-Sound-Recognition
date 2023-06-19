@@ -44,9 +44,9 @@ struct __attribute__((__packed__)) wave_audio_header {
 };
 
 struct signal {
-	char *data;
+	int16_t *data;
 	long size; 
-	char header[WAV_HEADER_SIZE];
+	int16_t header[WAV_HEADER_SIZE];
 };
 
 // #endif

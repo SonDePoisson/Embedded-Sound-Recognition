@@ -6,7 +6,7 @@
  * Extract `size` bytes as little endian value from `data` (starting at `offset`)
  * Return the native representation.
  */
-long long extract_le2n(int size, char data[], int offset)
+long long extract_le2n(int size, int16_t data[], int offset)
 {
   unsigned long long res = 0;
   while (size --)
@@ -23,7 +23,7 @@ long long extract_le2n(int size, char data[], int offset)
  * champ taille (il faudra donc le corriger de WAV_HEADER_SIZE -
  * WAV_FILESIZE_OFFSET - WAV_FILESIZE_LENGTH)
  */
-unsigned long wavefile_length(char header[])
+unsigned long wavefile_length(int16_t header[])
 {
     return extract_le2n(WAV_FILESIZE_LENGTH, header, WAV_FILESIZE_OFFSET) 
               - WAV_HEADER_SIZE + WAV_FILESIZE_OFFSET + WAV_FILESIZE_OFFSET;
@@ -54,14 +54,29 @@ void wavefile_read(char *file, struct signal *signal)
   print_file_parameters(fd);
 
   // - lire l'en-tête
-  fd.readBytes(signal->header, WAV_HEADER_SIZE);
+  char buffer_header[WAV_HEADER_SIZE];
+  fd.readBytes(buffer_header, WAV_HEADER_SIZE);
+  for (size_t i = 0; i < WAV_HEADER_SIZE; i++)
+    signal->header[i] = buffer_header[i];
+  
   // - Extraire la taille
   signal->size = wavefile_length(signal->header);
   Serial.printf("WAV size : %d\n", signal->size);
   // - Allouer un tableau de taille*char
-  signal->data = (char *) malloc(signal->size*sizeof(char));
+  signal->data = (int16_t *) malloc(signal->size*sizeof(int16_t));
+  Serial.printf("Allocated data\n");
   // - Lire les données
-  fd.readBytes(signal->data + WAV_HEADER_SIZE, signal->size - WAV_HEADER_SIZE);
+  int16_t *buffer_data;
+  buffer_data = (int16_t *) malloc(signal->size*sizeof(int16_t));
+  int idx = 0;
+  while (fd.available())
+  {
+    buffer_data[idx] = fd.read();
+    idx++;
+  }
+  for (size_t i = 0; i < signal->size; i+=2)
+    signal->data[i] = buffer_data[i]<<8|buffer_data[i+1];
+  
   // - Fermer le fichier
   fd.close();
 
