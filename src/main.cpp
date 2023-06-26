@@ -56,8 +56,34 @@ void setup()
 
   wavefile_read((char *)"/sound.wav", &signal_in);
 
+  unsigned int mfcc_step=368;
+  int samplingRate = 8000;
+  int FFT_SIZE=2048;
+
+  int16_t vReal[samplingRate]; 
+	double vReal_janela[FFT_SIZE];
+  for (size_t i = 0; i < FFT_SIZE; i++)
+  {
+    Serial.printf("vReal[%d] : %hd\n", i, signal_in.data[i]);
+  }
   
-	exit(0);
+	v_d mfcc, mfcc_frame;
+  // for(int mfcc_index = 0; mfcc_index < 8000; mfcc_index+=mfcc_step)
+	// {
+  //   for (int array_copy_index = 0; array_copy_index< mfcc_step; array_copy_index++)
+  //   {
+  //     vReal_janela[array_copy_index]=vReal[mfcc_index+array_copy_index];
+	// 		// Serial.printf("vReal_janela[%d] : %hd\n", array_copy_index, vReal_janela[array_copy_index]);
+	// 	}
+	                      
+	// 	// mfcc_frame =  mfcc_processFrame(vReal_janela, mfcc_step);
+	// 	// mfcc.insert(mfcc.end(), mfcc_frame.begin(), mfcc_frame.end());
+
+	// 	// Serial.printf("MFCC[%d] : %f\n", mfcc_index, mfcc[mfcc_index]);
+	// }  
+  
+  
+	exit_if(1, "\nSetup done");
 }
 
 int offset = 0;
@@ -77,5 +103,4 @@ void loop()
   TF_print_results(0.6);
   
   // Serial.printf("one of the labels found\n");
-  // exit(0);
 }

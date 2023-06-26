@@ -11,7 +11,7 @@
 
 
 // variáveis globais
-const double PI = 4*atan(1.0);   // Pi = 3.14...
+// const double PI = 4*atan(1.0);   // Pi = 3.14...
 int fs;
 twmap twiddle;
 size_t winLengthSamples, frameShiftSamples, numCepstra, numFFT, numFFTBins, numFilters;
