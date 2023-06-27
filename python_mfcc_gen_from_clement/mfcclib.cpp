@@ -244,8 +244,6 @@ v_d mfcc_processFrame(double *samples, int N) { // size_t N) {
 	computePowerSpec();
 	applyLMFB();
 	applyDct();
-
-	Serial.printf("MFCC process done\n");
 	
 	return mfcc; // eu quero que retorne um vector de double, depois me viro pra saída dos dados
 	//return powerSpectralCoef;

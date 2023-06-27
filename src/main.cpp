@@ -69,18 +69,11 @@ void setup()
   for(int mfcc_index = 0; mfcc_index < signal_in.size; mfcc_index+=mfcc_step)
 	{
     for (int array_copy_index = 0; array_copy_index< mfcc_step; array_copy_index++)
-    {
       vReal_janela[array_copy_index] = (double) signal_in.data[mfcc_index+array_copy_index];
-			// Serial.printf("vReal_janela[%d] : %f\n", array_copy_index, vReal_janela[array_copy_index]);
-		}
 	                      
 		mfcc_frame =  mfcc_processFrame(vReal_janela, mfcc_step);
-    Serial.printf("mfcc_frame.size() : %d\n", mfcc_frame.size());
-		// mfcc.insert(mfcc.end(), mfcc_frame.begin(), mfcc_frame.end());
-
-		// Serial.printf("MFCC[%d] : %f\n", mfcc_index, mfcc[mfcc_index]);
-	}  
-  
+		mfcc.insert(mfcc.end(), mfcc_frame.begin(), mfcc_frame.end());
+	} 
   
 	exit_if(1, "\nSetup done");
 }
