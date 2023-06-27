@@ -10,6 +10,7 @@
 #include "Wave.h"
 // MFCC
 #include "../python_mfcc_gen_from_clement/mfcclib.h"
+#include "../python_mfcc_gen_from_clement/mfcclib.cpp"
 
 //--------------------------------------- Variables
 
@@ -56,16 +57,14 @@ void setup()
 
   wavefile_read((char *)"/sound.wav", &signal_in);
 
-  unsigned int mfcc_step=368;
   int samplingRate = 8000;
-  int FFT_SIZE=2048;
+  int winLength = 256;
+  int frameShift = 46;
+  MFCC_INIT(samplingRate, numCepstra, winLength, frameShift, numFilters, lowFreq, highFreq);
 
-  int16_t vReal[samplingRate]; 
-	double vReal_janela[FFT_SIZE];
-  for (size_t i = 0; i < FFT_SIZE; i++)
-  {
-    Serial.printf("vReal[%d] : %hd\n", i, signal_in.data[i]);
-  }
+  unsigned int mfcc_step=368;
+  int FFT_SIZE=512;
+	double vReal_janela[FFT_SIZE] = {};
   
 	v_d mfcc, mfcc_frame;
   // for(int mfcc_index = 0; mfcc_index < 8000; mfcc_index+=mfcc_step)

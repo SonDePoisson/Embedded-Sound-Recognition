@@ -12,7 +12,7 @@
 
 // variáveis globais
 // const double PI = 4*atan(1.0);   // Pi = 3.14...
-int fs;
+int freqsamp;
 twmap twiddle;
 size_t winLengthSamples, frameShiftSamples, numCepstra, numFFT, numFFTBins, numFilters;
 double preEmphCoef, lowFreq, highFreq;
@@ -182,7 +182,7 @@ void initFilterbank () {
 	v_d fftBinFreq;
 	fftBinFreq.reserve(numFFTBins);
 	for (int i=0; i<numFFTBins; i++)
-		fftBinFreq.push_back (fs/2.0/(numFFTBins-1)*i);
+		fftBinFreq.push_back (freqsamp/2.0/(numFFTBins-1)*i);
 				
 	// Filterbank: Allocate memory
 	fbank.reserve (numFilters*numFFTBins);
@@ -209,15 +209,15 @@ void initFilterbank () {
 
 // Cálculo das variáveis globais da MFCC, inicialização da MFCC
  void  MFCC_INIT(int sampFreq, int nCep, int winLength, int frameShift, int numFilt, double lf, double hf) {
-        fs          = sampFreq;             // Sampling frequency
+        freqsamp          = sampFreq;             // Sampling frequency
         numCepstra  = nCep;                 // Number of cepstra
         numFilters  = numFilt;              // Number of Mel warped filters
         preEmphCoef = 0.97;                 // Pre-emphasis coefficient
         lowFreq     = lf;                   // Filterbank low frequency cutoff in Hertz
         highFreq    = hf;                   // Filterbank high frequency cutoff in Hertz
-        numFFT      = 1024;//fs<=20000?512:2048;   // FFT size
-        winLengthSamples   = winLength * fs / 1e3;  // winLength in milliseconds
-        frameShiftSamples  = frameShift * fs / 1e3; // frameShift in milliseconds
+        numFFT      = 1024;//freqsamp<=20000?512:2048;   // FFT size
+        winLengthSamples   = winLength * freqsamp / 1e3;  // winLength in milliseconds
+        frameShiftSamples  = frameShift * freqsamp / 1e3; // frameShift in milliseconds
         
         numFFTBins = numFFT/2 + 1;
         powerSpectralCoef.assign (numFFTBins, 0);
@@ -227,7 +227,7 @@ void initFilterbank () {
         initHamDct();
         compTwiddle();
         
-        
+		Serial.printf("MFCC_INIT done\n");
     }
 
 // Process each frame and extract MFCC
