@@ -209,13 +209,13 @@ void initFilterbank () {
 
 // Cálculo das variáveis globais da MFCC, inicialização da MFCC
  void  MFCC_INIT(int sampFreq, int nCep, int winLength, int frameShift, int numFilt, double lf, double hf) {
-        freqsamp          = sampFreq;             // Sampling frequency
+        freqsamp    = sampFreq;             // Sampling frequency
         numCepstra  = nCep;                 // Number of cepstra
         numFilters  = numFilt;              // Number of Mel warped filters
         preEmphCoef = 0.97;                 // Pre-emphasis coefficient
         lowFreq     = lf;                   // Filterbank low frequency cutoff in Hertz
         highFreq    = hf;                   // Filterbank high frequency cutoff in Hertz
-        numFFT      = 1024;//freqsamp<=20000?512:2048;   // FFT size
+        numFFT      = 512;//freqsamp<=20000?512:2048;   // FFT size
         winLengthSamples   = winLength * freqsamp / 1e3;  // winLength in milliseconds
         frameShiftSamples  = frameShift * freqsamp / 1e3; // frameShift in milliseconds
         
@@ -236,19 +236,16 @@ v_d mfcc_processFrame(double *samples, int N) { // size_t N) {
 	// to the current samples and create the frame.
 	frame = prevsamples;
 	for (int i=0; i<N; i++)
-	{
 		frame.push_back(samples[i]);
-	}
+
 	prevsamples.assign(frame.begin()+frameShiftSamples, frame.end());
 
 	//preEmphHam();
 	computePowerSpec();
-	//computePowerSpec();
-	
-	
 	applyLMFB();
 	applyDct();
 
+	Serial.printf("MFCC process done\n");
 	
 	return mfcc; // eu quero que retorne um vector de double, depois me viro pra saída dos dados
 	//return powerSpectralCoef;
