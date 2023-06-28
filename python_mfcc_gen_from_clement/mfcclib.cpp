@@ -208,14 +208,14 @@ void initFilterbank () {
 
 
 // Cálculo das variáveis globais da MFCC, inicialização da MFCC
- void  MFCC_INIT(int sampFreq, int nCep, int winLength, int frameShift, int numFilt, double lf, double hf) {
+ void  MFCC_INIT(int fft_size, int sampFreq, int nCep, int winLength, int frameShift, int numFilt, double lf, double hf) {
         freqsamp    = sampFreq;             // Sampling frequency
         numCepstra  = nCep;                 // Number of cepstra
         numFilters  = numFilt;              // Number of Mel warped filters
         preEmphCoef = 0.97;                 // Pre-emphasis coefficient
         lowFreq     = lf;                   // Filterbank low frequency cutoff in Hertz
         highFreq    = hf;                   // Filterbank high frequency cutoff in Hertz
-        numFFT      = 512;//freqsamp<=20000?512:2048;   // FFT size
+        numFFT      = fft_size;//freqsamp<=20000?512:2048;   // FFT size
         winLengthSamples   = winLength * freqsamp / 1e3;  // winLength in milliseconds
         frameShiftSamples  = frameShift * freqsamp / 1e3; // frameShift in milliseconds
         
@@ -223,8 +223,11 @@ void initFilterbank () {
         powerSpectralCoef.assign (numFFTBins, 0);
         prevsamples.assign (winLengthSamples-frameShiftSamples, 0);
 
+		Serial.printf("Init Filterbank\n");
         initFilterbank();
+		Serial.printf("Init Hamming and DCT\n");
         initHamDct();
+		Serial.printf("Init Twiddle\n");
         compTwiddle();
         
 		Serial.printf("MFCC_INIT done\n");

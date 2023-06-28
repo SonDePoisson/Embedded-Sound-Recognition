@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include "TensorFlow_define.h"
-#include "I2S_define.h"
 
 const char *labels[LABELS_COUNT] =
 {
@@ -48,7 +47,7 @@ void TF_init()
 
 void TF_fill_input(int32_t raw_samples[])
 {
-    for (int i = 0; i < SAMPLE_BUFFER_SIZE; i++)
+    for (int i = 0; i < 8000; i++) //8000 ??
     {
       Serial.printf("Input(%d): %d\n", i, raw_samples[i]);
       input->data.f[i] = raw_samples[i];

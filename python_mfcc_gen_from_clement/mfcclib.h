@@ -24,5 +24,5 @@ void applyLMFB(void);
 void applyDct(void);
 void initHamDct(void);
 void initFilterbank ();
-void  MFCC_INIT(int sampFreq, int nCep, int winLength, int frameShift, int numFilt, double lf, double hf);
+void  MFCC_INIT(int fft_size, int sampFreq, int nCep, int winLength, int frameShift, int numFilt, double lf, double hf);
 v_d mfcc_processFrame(double_t *samples, int N);
