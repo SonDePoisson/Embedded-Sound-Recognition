@@ -25,9 +25,12 @@ TfLiteTensor* output;
 #define __winLength  256
 #define __frameShift  46
 #define __lowFreq  50
-#define __highFreq  samplingRate/2
+#define __highFreq  __samplingRate/2
 #define __FFT_SIZE 1024
 #define __mfcc_step 368
+int16_t vReal[__samplingRate]; 
+int16_t vReal_janela[__mfcc_step]; 
+v_d mfcc_output, mfcc_output_frame;
 
 //--------------------------------------- Functions
 
@@ -52,15 +55,35 @@ void setup()
   Serial.printf("Setup done\n");
 }
 
-int offset = 0;
-
 void loop() 
 {
+  int input_buffer_index = 0;
 
+  //receive waveform
+  while(Serial.available())
+  {
+    // vReal[input_buffer_index]= (short) Serial.parseInt();
+    // input_buffer_index++;
+    
+    Serial.println(Serial.parseInt());
+  }  
 
-  // TF_fill_input(raw_samples);
-  // TF_run_inference();
-  // TF_print_results(0.6);
+  // send result
+  if (input_buffer_index > __samplingRate-1)
+  {
+    for(int mfcc_index = 0; mfcc_index < 8000; mfcc_index+=__mfcc_step)
+    {
+      for(int array_copy_index = 0; array_copy_index< __mfcc_step; array_copy_index++)
+        vReal_janela[array_copy_index]=vReal[mfcc_index+array_copy_index];
+
+      mfcc_output_frame = mfcc_processFrame(vReal_janela, __mfcc_step);
+      mfcc_output.insert(mfcc_output.end(), mfcc_output_frame.begin(), mfcc_output_frame.end());
+    }
   
-  // Serial.printf("one of the labels found\n");
+    double arr[256];
+    std::copy(mfcc_output.begin(), mfcc_output.end(), arr);
+
+    for(int output_buffer_index=64; output_buffer_index < 320; output_buffer_index++)
+      Serial.println(arr[output_buffer_index]);
+  } 
 }

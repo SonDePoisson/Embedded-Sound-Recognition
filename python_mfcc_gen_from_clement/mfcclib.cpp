@@ -234,7 +234,7 @@ void initFilterbank () {
     }
 
 // Process each frame and extract MFCC
-v_d mfcc_processFrame(double *samples, int N) { // size_t N) {
+v_d mfcc_processFrame(int16_t *samples, int N) { // size_t N) {
 	// Add samples from the previous frame that overlap with the current frame
 	// to the current samples and create the frame.
 	frame = prevsamples;
