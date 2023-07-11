@@ -11,18 +11,26 @@
 
 
 // variáveis globais
-// const double PI = 4*atan(1.0);   // Pi = 3.14...
-int freqsamp;
+#ifdef computer
+	const double PI = 4*atan(1.0);   // Pi = 3.14...
+#endif
+// int freqsamp;
+// size_t winLengthSamples, frameShiftSamples, numCepstra, numFFT, numFFTBins, numFilters;
+// double preEmphCoef, lowFreq, highFreq;
+// v_d frame, powerSpectralCoef, lmfbCoef, hamming, mfcc, prevsamples;
+// m_d fbank, dct;
+
+double *samples_imag; //samples imaginario com zeros
+double *samples_real; //samples imaginario com zeros
+v_d powerSpectralCoef;
+v_d prevsamples;
+int numFFTBins;
+
+arduinoFFT FFT = arduinoFFT(); 
+v_d hamming; 
+m_d dct;
+m_d fbank;
 twmap twiddle;
-size_t winLengthSamples, frameShiftSamples, numCepstra, numFFT, numFFTBins, numFilters;
-double preEmphCoef, lowFreq, highFreq;
-v_d frame, powerSpectralCoef, lmfbCoef, hamming, mfcc, prevsamples;
-m_d fbank, dct;
-double samples_imag[1024]; //samples imaginario com zeros
-double samples_real[1024]; //samples imaginario com zeros
-
-
-arduinoFFT FFT = arduinoFFT(); /* Create FFT object */
 
 
 
@@ -38,16 +46,21 @@ double mel2hz (double m) {
     }
        
 // Twiddle factor computation
-void compTwiddle(void) {
+void compTwiddle(twmap &twiddle, int numFFT) {
         const c_d J(0,1);      // Imaginary number 'j'
+
         for (int N=2; N<=numFFT; N*=2)
             for (int k=0; k<=N/2-1; k++)
+			{
                 twiddle[N][k] = exp(-2*PI*k/N*J);
-    }
+				// twiddle[N].insert(std::make_pair(k, exp(-2 * PI * k / N * J)));
+				// Serial.printf("N[%d] K[%d] Free Heap: %d\n", N, k, ESP.getFreeHeap());
+			}
+}
     
 
 // Cooley-Tukey DIT-FFT recursive function
-v_c_d fft(v_c_d x) {
+v_c_d fft(v_c_d x, twmap &twiddle) {
 	int N = x.size();
     if (N==1)
 		return x;
@@ -62,8 +75,8 @@ v_c_d fft(v_c_d x) {
 		xo[(i-1)/2] = x[i];
     
 	// Compute N/2-point FFT
-	Xjo = fft(xe);
-	Xjo2 = fft(xo);
+	Xjo = fft(xe, twiddle);
+	Xjo2 = fft(xo, twiddle);
 	Xjo.insert (Xjo.end(), Xjo2.begin(), Xjo2.end());
     
 	// Butterfly computations
@@ -81,7 +94,7 @@ v_c_d fft(v_c_d x) {
 // e o banco de filtros para cada faixa, e a transformada discreta do cosseno da saída do banco de filtros
 
 // Pre-emphasis and Hamming window
-void preEmphHam(void) {
+void preEmphHam(v_d &frame, double preEmphCoef, v_d &hamming) {
 	v_d procFrame(frame.size(), hamming[0]*frame[0]);
 	for (int i=1; i<frame.size(); i++)
 		procFrame[i] = hamming[i] * (frame[i] - preEmphCoef * frame[i-1]);
@@ -89,38 +102,41 @@ void preEmphHam(void) {
 }
 
 // Power spectrum computation
-void computePowerSpec() {
+void computePowerSpec(v_d &frame, int numFFT) {
+	
 	frame.resize(numFFT); // Pads zeros
 	//v_c_d framec (frame.begin(), frame.end()); // Complex frame
 	//v_c_d fftc = fft(framec);
-
     
     std::copy(frame.begin(), frame.end(), samples_real);
-    for (int index=0; index<numFFT; index++){
-			samples_imag[index]=0;
-        }
+    for (int index=0; index<numFFT; index++)
+	{
+		samples_imag[index]=0;
+    }
      
 	//fft	
     FFT.Windowing(samples_real, numFFT, FFT_WIN_TYP_HAMMING, FFT_FORWARD);  // Weigh data 
     FFT.Compute(samples_real, samples_imag, numFFT, FFT_FORWARD); // Compute FFT 
     //FFT.ComplexToMagnitude(samples_real, samples_imag, numFFT); // Compute magnitudes 
-    	
     
 
 	for (int i=0; i<numFFTBins; i++){
 		//powerSpectralCoef[i] =samples_real[i]/3;
 		powerSpectralCoef[i] = pow(samples_real[i],2)+pow(samples_imag[i],2);
 	}
+
 }	
 
 // Applying log Mel filterbank (LMFB)
-void applyLMFB(void) {
+void applyLMFB(v_d &powerSpectralCoef, m_d &fbank, v_d &lmfbCoef, int numFilters) {
 	lmfbCoef.assign(numFilters,0);
       
 	for (int i=0; i<numFilters; i++) {
 		// Multiply the filterbank matrix
 		for (int j=0; j<fbank[i].size(); j++)
+		{
 			lmfbCoef[i] += fbank[i][j] * powerSpectralCoef[j];
+		}
 		// Apply Mel-flooring
 		if (lmfbCoef[i] < 1.0)
 			lmfbCoef[i] = 1.0;
@@ -129,10 +145,11 @@ void applyLMFB(void) {
 	// Applying log on amplitude
 	for (int i=0; i<numFilters; i++)
 		lmfbCoef[i] = std::log (lmfbCoef[i]);
+
 }
     
 // Computing discrete cosine transform
-void applyDct(void) {
+void applyDct(m_d &dct, v_d &lmfbCoef, v_d &mfcc, int numFilters, int numCepstra) {
 	mfcc.assign(numCepstra+1,0);
 	for (int i=0; i<=numCepstra; i++) {
 		for (int j=0; j<numFilters; j++)
@@ -143,10 +160,10 @@ void applyDct(void) {
 
 //// ROTINAS DE INICIALIZAÇÃO ////
 // Pre-computing Hamming window and dct matrix
-void initHamDct(void) {
+void initHamDct(v_d &hamming, m_d &dct, int numFilters, int numCepstra, int winLengthSamples) {
 	int i, j;
 
-	hamming.assign(winLengthSamples,0);
+	hamming.assign(winLengthSamples, 0);
 	for (i=0; i<winLengthSamples; i++)
 		hamming[i] = 0.54 - 0.46 * cos(2 * PI * i / (winLengthSamples-1));
 
@@ -167,7 +184,7 @@ void initHamDct(void) {
 }
 
 // Precompute filterbank
-void initFilterbank () {
+void initFilterbank(m_d &fbank, int numFilters, int numFFTBins, int freqsamp, double lowFreq, double highFreq) {
 	// Convert low and high frequencies to Mel scale
 	double lowFreqMel = hz2mel(lowFreq);
 	double highFreqMel = hz2mel (highFreq);
@@ -208,48 +225,89 @@ void initFilterbank () {
 
 
 // Cálculo das variáveis globais da MFCC, inicialização da MFCC
- void  MFCC_INIT(int fft_size, int sampFreq, int nCep, int winLength, int frameShift, int numFilt, double lf, double hf) {
-        freqsamp    = sampFreq;             // Sampling frequency
-        numCepstra  = nCep;                 // Number of cepstra
-        numFilters  = numFilt;              // Number of Mel warped filters
-        preEmphCoef = 0.97;                 // Pre-emphasis coefficient
-        lowFreq     = lf;                   // Filterbank low frequency cutoff in Hertz
-        highFreq    = hf;                   // Filterbank high frequency cutoff in Hertz
-        numFFT      = fft_size;//freqsamp<=20000?512:2048;   // FFT size
-        winLengthSamples   = winLength * freqsamp / 1e3;  // winLength in milliseconds
-        frameShiftSamples  = frameShift * freqsamp / 1e3; // frameShift in milliseconds
-        
-        numFFTBins = numFFT/2 + 1;
-        powerSpectralCoef.assign (numFFTBins, 0);
-        prevsamples.assign (winLengthSamples-frameShiftSamples, 0);
+void  MFCC_INIT(int fft_size, int sampFreq, int nCep, int winLength, 
+				int frameShift, int numFilt, double lf, double hf) {
 
+        // freqsamp    = sampFreq;             // Sampling frequency
+        // numCepstra  = nCep;                 // Number of cepstra
+        // numFilters  = numFilt;              // Number of Mel warped filters
+        double preEmphCoef = 0.97;                 // Pre-emphasis coefficient
+        // lowFreq     = lf;                   // Filterbank low frequency cutoff in Hertz
+        // highFreq    = hf;                   // Filterbank high frequency cutoff in Hertz
+        // numFFT      = fft_size;//freqsamp<=20000?512:2048;   // FFT size
+        size_t winLengthSamples   = winLength * sampFreq / 1e3;  // winLength in milliseconds
+        size_t frameShiftSamples  = frameShift * sampFreq / 1e3; // frameShift in milliseconds
+
+		#ifdef computer
+		printf("Freq Sample : %d\n", sampFreq);
+		printf("Num Filters : %d\n", numFilt);
+		printf("Num FFT     : %d\n", fft_size);
+		printf("Win Length  : %lu points = %d ms\n", winLengthSamples, winLength);
+		printf("Frame Shift : %lu points = %d ms\n", frameShiftSamples, frameShift);
+		#else
+		Serial.printf("Freq Sample : %d\n", sampFreq);
+		Serial.printf("Num Filters : %d\n", numFilt);
+		Serial.printf("Num FFT     : %d\n", fft_size);
+		Serial.printf("Win Length  : %d points = %d ms\n", winLengthSamples, winLength);
+		Serial.printf("Frame Shift : %d points = %d ms\n", frameShiftSamples, frameShift);
+		#endif
+
+        numFFTBins = fft_size/2 + 1;
+		powerSpectralCoef.assign (numFFTBins, 0);
+		prevsamples.assign (winLengthSamples-frameShiftSamples, 0);
+
+		samples_imag = (double*) malloc(fft_size * sizeof(double));
+		samples_real = (double*) malloc(fft_size * sizeof(double));
+
+
+
+		#ifdef computer
+		printf("Init Filterbank\n");
+		#else
 		Serial.printf("Init Filterbank\n");
-        initFilterbank();
+		#endif
+        initFilterbank(fbank, numFilt, numFFTBins, sampFreq, lf, hf);
+		#ifdef computer
+		printf("Init Hamming and DCT\n");
+		#else
 		Serial.printf("Init Hamming and DCT\n");
-        initHamDct();
+		#endif
+        initHamDct(hamming, dct, numFilt, nCep, winLengthSamples);
+		#ifdef computer
+		printf("Init Twiddle\n");
+		#else
 		Serial.printf("Init Twiddle\n");
-        compTwiddle();
+		#endif
+        compTwiddle(twiddle, fft_size);
         
+		#ifdef computer
+		printf("MFCC_INIT done\n");
+		#else
 		Serial.printf("MFCC_INIT done\n");
+		#endif
     }
 
 // Process each frame and extract MFCC
-v_d mfcc_processFrame(int16_t *samples, int N) { // size_t N) {
-	// Add samples from the previous frame that overlap with the current frame
-	// to the current samples and create the frame.
+v_d mfcc_processFrame(int16_t *samples, int N, size_t frameShift, int fft_size, int numFilters, int numCepstra) { // size_t N) {
+	
+
+	v_d frame ;
+	v_d mfcc;
+	v_d lmfbCoef;
+
+	size_t frameShiftSamples = frameShift * 8; // frameShift in milliseconds
+
 	frame = prevsamples;
 	for (int i=0; i<N; i++)
 		frame.push_back(samples[i]);
 
 	prevsamples.assign(frame.begin()+frameShiftSamples, frame.end());
 
-	//preEmphHam();
-	computePowerSpec();
-	applyLMFB();
-	applyDct();
+	computePowerSpec(frame, fft_size);
+	applyLMFB(powerSpectralCoef, fbank, lmfbCoef, numFilters);
+	applyDct(dct, lmfbCoef, mfcc, numFilters, numCepstra);
 	
-	return mfcc; // eu quero que retorne um vector de double, depois me viro pra saída dos dados
-	//return powerSpectralCoef;
+	return mfcc; 
 }
 
 
