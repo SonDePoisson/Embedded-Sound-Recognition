@@ -53,7 +53,6 @@ void compTwiddle(twmap &twiddle, int numFFT) {
             for (int k=0; k<=N/2-1; k++)
 			{
                 twiddle[N][k] = exp(-2*PI*k/N*J);
-				// twiddle[N].insert(std::make_pair(k, exp(-2 * PI * k / N * J)));
 				// Serial.printf("N[%d] K[%d] Free Heap: %d\n", N, k, ESP.getFreeHeap());
 			}
 }
@@ -117,12 +116,13 @@ void computePowerSpec(v_d &frame, int numFFT) {
 	//fft	
     FFT.Windowing(samples_real, numFFT, FFT_WIN_TYP_HAMMING, FFT_FORWARD);  // Weigh data 
     FFT.Compute(samples_real, samples_imag, numFFT, FFT_FORWARD); // Compute FFT 
-    //FFT.ComplexToMagnitude(samples_real, samples_imag, numFFT); // Compute magnitudes 
+    // FFT.ComplexToMagnitude(samples_real, samples_imag, numFFT); // Compute magnitudes 
     
 
 	for (int i=0; i<numFFTBins; i++){
-		//powerSpectralCoef[i] =samples_real[i]/3;
+		//powerSpectralCoef[i] = samples_real[i]/3;
 		powerSpectralCoef[i] = pow(samples_real[i],2)+pow(samples_imag[i],2);
+		// printf("powerSpectralCoef[%d] = %f\n", i, powerSpectralCoef[i]);
 	}
 
 }	
@@ -134,9 +134,8 @@ void applyLMFB(v_d &powerSpectralCoef, m_d &fbank, v_d &lmfbCoef, int numFilters
 	for (int i=0; i<numFilters; i++) {
 		// Multiply the filterbank matrix
 		for (int j=0; j<fbank[i].size(); j++)
-		{
 			lmfbCoef[i] += fbank[i][j] * powerSpectralCoef[j];
-		}
+		
 		// Apply Mel-flooring
 		if (lmfbCoef[i] < 1.0)
 			lmfbCoef[i] = 1.0;
@@ -144,7 +143,9 @@ void applyLMFB(v_d &powerSpectralCoef, m_d &fbank, v_d &lmfbCoef, int numFilters
         
 	// Applying log on amplitude
 	for (int i=0; i<numFilters; i++)
+	{
 		lmfbCoef[i] = std::log (lmfbCoef[i]);
+	}
 
 }
     
@@ -153,7 +154,11 @@ void applyDct(m_d &dct, v_d &lmfbCoef, v_d &mfcc, int numFilters, int numCepstra
 	mfcc.assign(numCepstra+1,0);
 	for (int i=0; i<=numCepstra; i++) {
 		for (int j=0; j<numFilters; j++)
+		{
 			mfcc[i] += dct[i][j] * lmfbCoef[j];
+		}
+		// if (mfcc[i] > 20)
+			// printf("mfcc[%d] = %f\n", i, mfcc[i]);
 	}
 }
 
@@ -239,11 +244,11 @@ void  MFCC_INIT(int fft_size, int sampFreq, int nCep, int winLength,
         size_t frameShiftSamples  = frameShift * sampFreq / 1e3; // frameShift in milliseconds
 
 		#ifdef computer
-		printf("Freq Sample : %d\n", sampFreq);
-		printf("Num Filters : %d\n", numFilt);
-		printf("Num FFT     : %d\n", fft_size);
-		printf("Win Length  : %lu points = %d ms\n", winLengthSamples, winLength);
-		printf("Frame Shift : %lu points = %d ms\n", frameShiftSamples, frameShift);
+		// printf("Freq Sample : %d\n", sampFreq);
+		// printf("Num Filters : %d\n", numFilt);
+		// printf("Num FFT     : %d\n", fft_size);
+		// printf("Win Length  : %lu points = %d ms\n", winLengthSamples, winLength);
+		// printf("Frame Shift : %lu points = %d ms\n", frameShiftSamples, frameShift);
 		#else
 		Serial.printf("Freq Sample : %d\n", sampFreq);
 		Serial.printf("Num Filters : %d\n", numFilt);
@@ -254,7 +259,10 @@ void  MFCC_INIT(int fft_size, int sampFreq, int nCep, int winLength,
 
         numFFTBins = fft_size/2 + 1;
 		powerSpectralCoef.assign (numFFTBins, 0);
-		prevsamples.assign (winLengthSamples-frameShiftSamples, 0);
+		printf("winlengthsamples = %lu\n", winLengthSamples);
+		printf("frameshiftsamples = %lu\n", frameShiftSamples);
+		prevsamples.assign (winLengthSamples - frameShiftSamples, 0);
+		printf("prevsamples.size() = %lu\n", prevsamples.size());
 
 		samples_imag = (double*) malloc(fft_size * sizeof(double));
 		samples_real = (double*) malloc(fft_size * sizeof(double));
@@ -262,26 +270,26 @@ void  MFCC_INIT(int fft_size, int sampFreq, int nCep, int winLength,
 
 
 		#ifdef computer
-		printf("Init Filterbank\n");
+		// printf("Init Filterbank\n");
 		#else
 		Serial.printf("Init Filterbank\n");
 		#endif
         initFilterbank(fbank, numFilt, numFFTBins, sampFreq, lf, hf);
 		#ifdef computer
-		printf("Init Hamming and DCT\n");
+		// printf("Init Hamming and DCT\n");
 		#else
 		Serial.printf("Init Hamming and DCT\n");
 		#endif
         initHamDct(hamming, dct, numFilt, nCep, winLengthSamples);
 		#ifdef computer
-		printf("Init Twiddle\n");
+		// printf("Init Twiddle\n");
 		#else
 		Serial.printf("Init Twiddle\n");
 		#endif
         compTwiddle(twiddle, fft_size);
         
 		#ifdef computer
-		printf("MFCC_INIT done\n");
+		// printf("MFCC_INIT done\n");
 		#else
 		Serial.printf("MFCC_INIT done\n");
 		#endif
@@ -298,8 +306,11 @@ v_d mfcc_processFrame(int16_t *samples, int N, size_t frameShift, int fft_size, 
 	size_t frameShiftSamples = frameShift * 8; // frameShift in milliseconds
 
 	frame = prevsamples;
+	printf("before : frame.size() = %lu\n", frame.size());
 	for (int i=0; i<N; i++)
 		frame.push_back(samples[i]);
+
+	printf("after : frame.size() = %lu\n", frame.size()); 
 
 	prevsamples.assign(frame.begin()+frameShiftSamples, frame.end());
 
@@ -309,6 +320,5 @@ v_d mfcc_processFrame(int16_t *samples, int N, size_t frameShift, int fft_size, 
 	
 	return mfcc; 
 }
-
 
 

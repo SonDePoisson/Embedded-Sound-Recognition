@@ -21,13 +21,13 @@ TfLiteTensor* output;
 // MFCC
 #define __lowFreq      50
 #define __highFreq     __samplingRate/2
-#define __numFilters   16
-#define __numCepstra   15
+#define __numFilters   14    // Freq
+#define __numCepstra   20    // Temps
 #define __samplingRate 8000
-#define __FFT_SIZE     1024/2
-#define __winLength    128/2 // (__FFT_SIZE ) / (__samplingRate / 1000)   // In milliseconds  
-#define __frameShift   58/2  // (1000 - __winLength) / (__numFilters - 1) // In milliseconds
-#define __mfcc_step    560/2 // (__winLength - __frameShift) * (__samplingRate / 1000) // In samples
+#define __FFT_SIZE     512
+#define __winLength    64 // (__FFT_SIZE ) / (__samplingRate / 1000)   // In milliseconds  
+#define __frameShift   62  // (1000 - __winLength) / (__numFilters - 1) // In milliseconds
+#define __mfcc_step    500 // (frameShift) * (__samplingRate / 1000) // In samples
 int16_t vReal[__samplingRate] = {}; 
 int16_t vReal_janela[__mfcc_step]; 
 v_d mfcc_output, mfcc_output_frame;
@@ -49,7 +49,7 @@ void setup()
   Serial.begin(115200);
   delay(3000);
   Serial.println("\n\nStarting setup...");
-  
+
   MFCC_INIT(__FFT_SIZE, __samplingRate, __numCepstra, __winLength, __frameShift, __numFilters, __lowFreq, __highFreq);
 
   Serial.printf("Free Heap: %d\n", ESP.getFreeHeap());
@@ -64,6 +64,7 @@ void loop()
   //receive waveform
   while(Serial.available())
   {
+    // Serial.printf("Serial.available()\n");
     vReal[input_buffer_index]= (short) Serial.parseInt();
     input_buffer_index++;
   }  
@@ -71,6 +72,7 @@ void loop()
   // send result
   if (input_buffer_index >= __samplingRate-1)
   {
+    // Serial.printf("input_buffer_index: %d >= 7999\n", input_buffer_index);
     for(int mfcc_index = 0; mfcc_index < 8000; mfcc_index+=__mfcc_step)
     {
       for(int array_copy_index = 0; array_copy_index< __mfcc_step; array_copy_index++)
