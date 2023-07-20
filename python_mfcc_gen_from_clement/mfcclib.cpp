@@ -27,7 +27,7 @@ v_d prevsamples;
 int numFFTBins;
 
 arduinoFFT FFT = arduinoFFT(); 
-v_d hamming; 
+// v_d hamming; 
 m_d dct;
 m_d fbank;
 twmap twiddle;
@@ -230,39 +230,26 @@ void initFilterbank(m_d &fbank, int numFilters, int numFFTBins, int freqsamp, do
 
 
 // Cálculo das variáveis globais da MFCC, inicialização da MFCC
-void  MFCC_INIT(int fft_size, int sampFreq, int nCep, int winLength, 
+void  MFCC_INIT(int fft_size, int sampFreq, int nCep, 
 				int frameShift, int numFilt, double lf, double hf) {
 
-        // freqsamp    = sampFreq;             // Sampling frequency
-        // numCepstra  = nCep;                 // Number of cepstra
-        // numFilters  = numFilt;              // Number of Mel warped filters
-        double preEmphCoef = 0.97;                 // Pre-emphasis coefficient
-        // lowFreq     = lf;                   // Filterbank low frequency cutoff in Hertz
-        // highFreq    = hf;                   // Filterbank high frequency cutoff in Hertz
-        // numFFT      = fft_size;//freqsamp<=20000?512:2048;   // FFT size
-        size_t winLengthSamples   = winLength * sampFreq / 1e3;  // winLength in milliseconds
-        size_t frameShiftSamples  = frameShift * sampFreq / 1e3; // frameShift in milliseconds
-
 		#ifdef computer
-		// printf("Freq Sample : %d\n", sampFreq);
-		// printf("Num Filters : %d\n", numFilt);
-		// printf("Num FFT     : %d\n", fft_size);
-		// printf("Win Length  : %lu points = %d ms\n", winLengthSamples, winLength);
-		// printf("Frame Shift : %lu points = %d ms\n", frameShiftSamples, frameShift);
+		printf("Freq Sample : %d\n", sampFreq);
+		printf("Num Cepstra : %d\n", nCep);
+		printf("Num Filters : %d\n", numFilt);
+		printf("FFT   Size  : %d\n", fft_size);
+		printf("Frame Shift : %d\n", frameShift);
 		#else
 		Serial.printf("Freq Sample : %d\n", sampFreq);
+		Serial.printf("Num Cepstra : %d\n", nCep);
 		Serial.printf("Num Filters : %d\n", numFilt);
-		Serial.printf("Num FFT     : %d\n", fft_size);
-		Serial.printf("Win Length  : %d points = %d ms\n", winLengthSamples, winLength);
-		Serial.printf("Frame Shift : %d points = %d ms\n", frameShiftSamples, frameShift);
+		Serial.printf("FFT   Size  : %d\n", fft_size);
+		Serial.printf("Frame Shift : %d\n", frameShift);
 		#endif
 
         numFFTBins = fft_size/2 + 1;
 		powerSpectralCoef.assign (numFFTBins, 0);
-		printf("winlengthsamples = %lu\n", winLengthSamples);
-		printf("frameshiftsamples = %lu\n", frameShiftSamples);
-		prevsamples.assign (winLengthSamples - frameShiftSamples, 0);
-		printf("prevsamples.size() = %lu\n", prevsamples.size());
+		prevsamples.assign (fft_size - frameShift, 0);
 
 		samples_imag = (double*) malloc(fft_size * sizeof(double));
 		samples_real = (double*) malloc(fft_size * sizeof(double));
@@ -275,12 +262,12 @@ void  MFCC_INIT(int fft_size, int sampFreq, int nCep, int winLength,
 		Serial.printf("Init Filterbank\n");
 		#endif
         initFilterbank(fbank, numFilt, numFFTBins, sampFreq, lf, hf);
-		#ifdef computer
-		// printf("Init Hamming and DCT\n");
-		#else
-		Serial.printf("Init Hamming and DCT\n");
-		#endif
-        initHamDct(hamming, dct, numFilt, nCep, winLengthSamples);
+		// #ifdef computer
+		// // printf("Init Hamming and DCT\n");
+		// #else
+		// Serial.printf("Init Hamming and DCT\n");
+		// #endif
+        // initHamDct(hamming, dct, numFilt, nCep, fft_size);
 		#ifdef computer
 		// printf("Init Twiddle\n");
 		#else
@@ -303,16 +290,12 @@ v_d mfcc_processFrame(int16_t *samples, int N, size_t frameShift, int fft_size, 
 	v_d mfcc;
 	v_d lmfbCoef;
 
-	size_t frameShiftSamples = frameShift * 8; // frameShift in milliseconds
-
 	frame = prevsamples;
-	printf("before : frame.size() = %lu\n", frame.size());
 	for (int i=0; i<N; i++)
 		frame.push_back(samples[i]);
+ 
 
-	printf("after : frame.size() = %lu\n", frame.size()); 
-
-	prevsamples.assign(frame.begin()+frameShiftSamples, frame.end());
+	prevsamples.assign(frame.begin()+frameShift, frame.end());
 
 	computePowerSpec(frame, fft_size);
 	applyLMFB(powerSpectralCoef, fbank, lmfbCoef, numFilters);

@@ -24,6 +24,6 @@ void applyLMFB(v_d &powerSpectralCoef, m_d &fbank, v_d &lmfbCoef, int numFilters
 void applyDct(m_d &dct, v_d &lmfbCoef, v_d &mfcc, int numFilters, int numCepstra);
 void initHamDct(v_d &hamming, m_d &dct, int numFilters, int numCepstra, int winLengthSamples);
 void initFilterbank(m_d &fbank, int numFilters, int numFFTBins, int freqsamp, double lowFreq, double highFreq);
-void  MFCC_INIT(int fft_size, int sampFreq, int nCep, int winLength, 
+void  MFCC_INIT(int fft_size, int sampFreq, int nCep, 
 				int frameShift, int numFilt, double lf, double hf);
 v_d mfcc_processFrame(int16_t *samples, int N, size_t frameShiftSamples, int fft_size, int numFilters, int numCepstra);

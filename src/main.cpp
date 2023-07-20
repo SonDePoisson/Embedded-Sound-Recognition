@@ -21,15 +21,13 @@ TfLiteTensor* output;
 // MFCC
 #define __lowFreq      50
 #define __highFreq     __samplingRate/2
-#define __numFilters   14    // Freq
-#define __numCepstra   20    // Temps
+#define __numFilters   16    
+#define __numCepstra   15   
 #define __samplingRate 8000
-#define __FFT_SIZE     512
-#define __winLength    64 // (__FFT_SIZE ) / (__samplingRate / 1000)   // In milliseconds  
-#define __frameShift   62  // (1000 - __winLength) / (__numFilters - 1) // In milliseconds
-#define __mfcc_step    500 // (frameShift) * (__samplingRate / 1000) // In samples
+#define __FFT_SIZE     1024  // Sample
+#define __frameShift   465   // Sample
 int16_t vReal[__samplingRate] = {}; 
-int16_t vReal_janela[__mfcc_step]; 
+int16_t vReal_janela[__frameShift]; 
 v_d mfcc_output, mfcc_output_frame;
 
 //--------------------------------------- Functions
@@ -50,7 +48,7 @@ void setup()
   delay(3000);
   Serial.println("\n\nStarting setup...");
 
-  MFCC_INIT(__FFT_SIZE, __samplingRate, __numCepstra, __winLength, __frameShift, __numFilters, __lowFreq, __highFreq);
+  MFCC_INIT(__FFT_SIZE, __samplingRate, __numCepstra, __frameShift, __numFilters, __lowFreq, __highFreq);
 
   Serial.printf("Free Heap: %d\n", ESP.getFreeHeap());
 
@@ -69,19 +67,20 @@ void loop()
     input_buffer_index++;
   }  
 
+  Serial.printf("End Reading\n");
   // send result
   if (input_buffer_index >= __samplingRate-1)
   {
-    // Serial.printf("input_buffer_index: %d >= 7999\n", input_buffer_index);
-    for(int mfcc_index = 0; mfcc_index < 8000; mfcc_index+=__mfcc_step)
+    // // Serial.printf("input_buffer_index: %d >= 7999\n", input_buffer_index);
+    for(int mfcc_index = 0; mfcc_index < 8000; mfcc_index+=__frameShift)
     {
-      for(int array_copy_index = 0; array_copy_index< __mfcc_step; array_copy_index++)
+      for(int array_copy_index = 0; array_copy_index< __frameShift; array_copy_index++)
       {
         vReal_janela[array_copy_index]=vReal[mfcc_index+array_copy_index];
         // Serial.printf("vReal_janela[%d] = %d\n", array_copy_index, vReal_janela[array_copy_index]);
       }
 
-      mfcc_output_frame = mfcc_processFrame(vReal_janela, __mfcc_step, __frameShift, __FFT_SIZE, __numFilters, __numCepstra);
+      mfcc_output_frame = mfcc_processFrame(vReal_janela, __frameShift, __frameShift, __FFT_SIZE, __numFilters, __numCepstra);
       mfcc_output.insert(mfcc_output.end(), mfcc_output_frame.begin(), mfcc_output_frame.end());
 
     }
