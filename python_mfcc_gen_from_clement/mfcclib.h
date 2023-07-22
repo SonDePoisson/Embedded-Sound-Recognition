@@ -20,7 +20,7 @@ v_c_d fft(v_c_d x, twmap &twiddle);
 void preEmphHam(v_d &frame, double preEmphCoef, v_d &hamming);
 //void computePowerSpec(double *samples); 
 void computePowerSpec(v_d &frame, int numFFT); 
-void applyLMFB(v_d &powerSpectralCoef, m_d &fbank, v_d &lmfbCoef, int numFilters);	
+void applyLMFB(v_d &powerSpectralCoef, const double **fbank, v_d &lmfbCoef, int numFilters);	
 void applyDct(m_d &dct, v_d &lmfbCoef, v_d &mfcc, int numFilters, int numCepstra);
 void initHamDct(v_d &hamming, m_d &dct, int numFilters, int numCepstra, int winLengthSamples);
 void initFilterbank(m_d &fbank, int numFilters, int numFFTBins, int freqsamp, double lowFreq, double highFreq);

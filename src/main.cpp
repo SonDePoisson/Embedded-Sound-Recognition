@@ -67,30 +67,23 @@ void loop()
     input_buffer_index++;
   }  
 
-  Serial.printf("End Reading\n");
   // send result
   if (input_buffer_index >= __samplingRate-1)
   {
-    // // Serial.printf("input_buffer_index: %d >= 7999\n", input_buffer_index);
     for(int mfcc_index = 0; mfcc_index < 8000; mfcc_index+=__frameShift)
-    {
-      for(int array_copy_index = 0; array_copy_index< __frameShift; array_copy_index++)
-      {
-        vReal_janela[array_copy_index]=vReal[mfcc_index+array_copy_index];
-        // Serial.printf("vReal_janela[%d] = %d\n", array_copy_index, vReal_janela[array_copy_index]);
-      }
+  {
+    for(int array_copy_index = 0; array_copy_index< __frameShift; array_copy_index++)
+      vReal_janela[array_copy_index]=vReal[mfcc_index+array_copy_index];
 
-      mfcc_output_frame = mfcc_processFrame(vReal_janela, __frameShift, __frameShift, __FFT_SIZE, __numFilters, __numCepstra);
-      mfcc_output.insert(mfcc_output.end(), mfcc_output_frame.begin(), mfcc_output_frame.end());
-
-    }
-    
+    mfcc_output_frame = mfcc_processFrame(vReal_janela, __frameShift, __frameShift, __FFT_SIZE, __numFilters, __numCepstra);
+    mfcc_output.insert(mfcc_output.end(), mfcc_output_frame.begin(), mfcc_output_frame.end());
+  }
 
     double arr[256];
     std::copy(mfcc_output.begin(), mfcc_output.end(), arr);
 
 
-    for(int output_buffer_index=64; output_buffer_index < 320; output_buffer_index++)
+    for(int output_buffer_index=0; output_buffer_index < 256; output_buffer_index++)
       Serial.println(arr[output_buffer_index]);
   }
 }

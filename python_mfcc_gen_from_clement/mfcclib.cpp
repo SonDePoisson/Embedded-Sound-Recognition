@@ -6,6 +6,7 @@
 #include "arduinoFFT.cpp"
 
 #include "mfcclib.h"
+#include "fbank_data.h"
 
 
 
@@ -27,9 +28,9 @@ v_d prevsamples;
 int numFFTBins;
 
 arduinoFFT FFT = arduinoFFT(); 
-// v_d hamming; 
+v_d hamming; 
 m_d dct;
-m_d fbank;
+// m_d fbank;
 twmap twiddle;
 
 
@@ -128,12 +129,12 @@ void computePowerSpec(v_d &frame, int numFFT) {
 }	
 
 // Applying log Mel filterbank (LMFB)
-void applyLMFB(v_d &powerSpectralCoef, m_d &fbank, v_d &lmfbCoef, int numFilters) {
+void applyLMFB(v_d &powerSpectralCoef, const double fbank[16][513], v_d &lmfbCoef, int numFilters) {
 	lmfbCoef.assign(numFilters,0);
       
 	for (int i=0; i<numFilters; i++) {
 		// Multiply the filterbank matrix
-		for (int j=0; j<fbank[i].size(); j++)
+		for (int j=0; j< numFFTBins; j++)
 			lmfbCoef[i] += fbank[i][j] * powerSpectralCoef[j];
 		
 		// Apply Mel-flooring
@@ -157,8 +158,6 @@ void applyDct(m_d &dct, v_d &lmfbCoef, v_d &mfcc, int numFilters, int numCepstra
 		{
 			mfcc[i] += dct[i][j] * lmfbCoef[j];
 		}
-		// if (mfcc[i] > 20)
-			// printf("mfcc[%d] = %f\n", i, mfcc[i]);
 	}
 }
 
@@ -178,7 +177,8 @@ void initHamDct(v_d &hamming, m_d &dct, int numFilters, int numCepstra, int winL
 	for (i=0; i < numFilters; i++)
 		v2[i] = i + 0.5;
 
-	dct.reserve (numFilters*(numCepstra+1));        
+
+	dct.reserve (numFilters*(numCepstra+1)); 
 	double c = sqrt(2.0/numFilters);
 	for (i=0; i<=numCepstra; i++) {
 		v_d dtemp;
@@ -234,11 +234,11 @@ void  MFCC_INIT(int fft_size, int sampFreq, int nCep,
 				int frameShift, int numFilt, double lf, double hf) {
 
 		#ifdef computer
-		printf("Freq Sample : %d\n", sampFreq);
-		printf("Num Cepstra : %d\n", nCep);
-		printf("Num Filters : %d\n", numFilt);
-		printf("FFT   Size  : %d\n", fft_size);
-		printf("Frame Shift : %d\n", frameShift);
+		// printf("Freq Sample : %d\n", sampFreq);
+		// printf("Num Cepstra : %d\n", nCep);
+		// printf("Num Filters : %d\n", numFilt);
+		// printf("FFT   Size  : %d\n", fft_size);
+		// printf("Frame Shift : %d\n", frameShift);
 		#else
 		Serial.printf("Freq Sample : %d\n", sampFreq);
 		Serial.printf("Num Cepstra : %d\n", nCep);
@@ -255,19 +255,18 @@ void  MFCC_INIT(int fft_size, int sampFreq, int nCep,
 		samples_real = (double*) malloc(fft_size * sizeof(double));
 
 
-
 		#ifdef computer
 		// printf("Init Filterbank\n");
 		#else
 		Serial.printf("Init Filterbank\n");
 		#endif
-        initFilterbank(fbank, numFilt, numFFTBins, sampFreq, lf, hf);
-		// #ifdef computer
-		// // printf("Init Hamming and DCT\n");
-		// #else
-		// Serial.printf("Init Hamming and DCT\n");
-		// #endif
-        // initHamDct(hamming, dct, numFilt, nCep, fft_size);
+        // initFilterbank(fbank, numFilt, numFFTBins, sampFreq, lf, hf);
+		#ifdef computer
+		// printf("Init Hamming and DCT\n");
+		#else
+		Serial.printf("Init Hamming and DCT\n");
+		#endif
+        initHamDct(hamming, dct, numFilt, nCep, fft_size);
 		#ifdef computer
 		// printf("Init Twiddle\n");
 		#else
@@ -279,6 +278,7 @@ void  MFCC_INIT(int fft_size, int sampFreq, int nCep,
 		// printf("MFCC_INIT done\n");
 		#else
 		Serial.printf("MFCC_INIT done\n");
+		Serial.printf("Free Heap: %d\n", ESP.getFreeHeap());
 		#endif
     }
 
