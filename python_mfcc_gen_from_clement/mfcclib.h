@@ -26,4 +26,4 @@ void initHamDct(v_d &hamming, m_d &dct, int numFilters, int numCepstra, int winL
 void initFilterbank(m_d &fbank, int numFilters, int numFFTBins, int freqsamp, double lowFreq, double highFreq);
 void  MFCC_INIT(int fft_size, int sampFreq, int nCep, 
 				int frameShift, int numFilt, double lf, double hf);
-v_d mfcc_processFrame(int16_t *samples, int N, size_t frameShiftSamples, int fft_size, int numFilters, int numCepstra);
+v_d mfcc_processFrame(int16_t *samples, int N, int fft_size, int numFilters, int numCepstra);

@@ -283,8 +283,7 @@ void  MFCC_INIT(int fft_size, int sampFreq, int nCep,
     }
 
 // Process each frame and extract MFCC
-v_d mfcc_processFrame(int16_t *samples, int N, size_t frameShift, int fft_size, int numFilters, int numCepstra) { // size_t N) {
-	
+v_d mfcc_processFrame(int16_t *samples, int N, int fft_size, int numFilters, int numCepstra) { // size_t N) {
 
 	v_d frame ;
 	v_d mfcc;
@@ -295,7 +294,7 @@ v_d mfcc_processFrame(int16_t *samples, int N, size_t frameShift, int fft_size, 
 		frame.push_back(samples[i]);
  
 
-	prevsamples.assign(frame.begin()+frameShift, frame.end());
+	prevsamples.assign(frame.begin()+N, frame.end());
 
 	computePowerSpec(frame, fft_size);
 	applyLMFB(powerSpectralCoef, fbank, lmfbCoef, numFilters);
