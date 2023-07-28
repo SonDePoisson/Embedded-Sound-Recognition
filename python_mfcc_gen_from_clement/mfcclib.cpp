@@ -258,28 +258,21 @@ void  MFCC_INIT(int fft_size, int sampFreq, int nCep,
 		#ifdef computer
 		// printf("Init Filterbank\n");
 		#else
-		Serial.printf("Init Filterbank\n");
+		// Serial.printf("Init Filterbank\n");
 		#endif
         // initFilterbank(fbank, numFilt, numFFTBins, sampFreq, lf, hf);
 		#ifdef computer
 		// printf("Init Hamming and DCT\n");
 		#else
-		Serial.printf("Init Hamming and DCT\n");
+		// Serial.printf("Init Hamming and DCT\n");
 		#endif
         initHamDct(hamming, dct, numFilt, nCep, fft_size);
 		#ifdef computer
 		// printf("Init Twiddle\n");
 		#else
-		Serial.printf("Init Twiddle\n");
+		// Serial.printf("Init Twiddle\n");
 		#endif
         compTwiddle(twiddle, fft_size);
-        
-		#ifdef computer
-		// printf("MFCC_INIT done\n");
-		#else
-		Serial.printf("MFCC_INIT done\n");
-		Serial.printf("Free Heap: %d\n", ESP.getFreeHeap());
-		#endif
     }
 
 // Process each frame and extract MFCC

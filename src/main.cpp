@@ -320,7 +320,7 @@ namespace
   // Create an area of memory to use for input, output, and other TensorFlow
   // arrays. You'll need to adjust this by compiling, running, and looking
   // for error.
-  constexpr int kTensorArenaSize        = 11 * 1024;
+  constexpr int kTensorArenaSize  = 40000; // A modifier selon le modèle
   uint8_t tensor_arena[kTensorArenaSize];
    
 } //namespace
@@ -333,8 +333,8 @@ short output_buffer_pointer_count       = 1;
 // To buffer
 int16_t samplesBuffer[frameShift]; // changé le perte d echantillons
 double mfcc_output[256]; // 256?
-float inference[8];
-float sum_inference             = 0;
+float inference[16];
+float sum_inference = 0;
 //double vReal_janela[FFT_SIZE];                                    // Aloca memÃ³ria pra janela da FFT
 //v_d mfcc_output_frame;                                          // Aloca memÃ³ria pra uma MFCC e a MAtriz MFCC
 //double mfcc_output[100];
@@ -548,8 +548,9 @@ void IRAM_ATTR onTimer2()
 
 void setup()
 {
-  
   setupSerial();
+  delay(3000);
+  Serial.println("Start Up");
   
   // To clear EEPROM
   
@@ -599,24 +600,27 @@ void setup()
   */
   
   setupPins();
-  
+  Serial.println("Setup pins done");
   setupMCP41010();  
-  
+  Serial.println("Setup MCP41010 done");
   setupEEPROM();  
-  
+  Serial.println("Setup EEPROM done");
   // if(EEPROM.read(modeCalibration)  ==  0x00) setupCalibration();
   
-  setupCalibration();
-  
+  // setupCalibration();
+  // Serial.println("Setup Calibration done"); // !!
+  Serial.println("No Calibration ADC");
   setupMFCC();
-  
+  Serial.println("Setup MFCC done");
   setupTFLite();
-  
+  Serial.println("Setup TFLite done");
   setupTimer(); // chqnger pour i2s
-
+  Serial.println("Setup Timer done");
   setupInterrupt();
-  
+  Serial.println("Setup Interrupt done");
   timeToJson01 = millis();
+
+  Serial.println("Setup done");
 
 } // end setup
 
@@ -849,6 +853,7 @@ void setupTFLite()
                 
   interpreter = &static_interpreter;
   
+  Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
   // Allocate memory from the tensor_arena for the model's tensors.
   TfLiteStatus allocate_status = interpreter->AllocateTensors();
   
@@ -1092,7 +1097,7 @@ void setupCalibration()
 
 void loop()
 {
-  
+  /*
   if(!digitalRead(pinToCalibration))    flagToCalibration = true;
   if((!digitalRead(pinToCalibration)) &&  flagToCalibration)
   {
@@ -1126,8 +1131,9 @@ void loop()
     } // end if   
     
   } // end if  // Peut etre commenter cette calibration pour le moment
-  
-  if(flagCalculateInference)    calculateInference();
+  */
+
+  if(flagCalculateInference) calculateInference();
     
   if(!flagErroConnect)
   {
@@ -1234,20 +1240,20 @@ void calculateInference()
   
     mfcc_output_frame = mfcc_processFrame(samplesBuffer, frameShift, FFT_SIZE, numFilters, numCepstra);
   
-    for (int output_index = 0; output_index < 8; output_index++)
+    for (int output_index = 0; output_index < 16; output_index++)
     {
       mfcc_output[window_index+output_index] = mfcc_output_frame[output_index];
     } // end for
     
-    window_index += 8;// decalage de 16
+    window_index += 16;// decalage de 16
   
-    if (window_index > 63)     //255                      // apÃ³s calcular 4 MFCC (0,5 segundos e pega as MFCCs de trÃ¡s)
+    if (window_index >= 255)     //255                      // apÃ³s calcular 4 MFCC (0,5 segundos e pega as MFCCs de trÃ¡s)
     {
       
       //for (short i=0; i<63; i++)
       //Serial.println(mfcc_output[i]);
       // Jogar a MFCC pro ponteiro do TFLite
-      for(short output_buffer_index=0; output_buffer_index < 63; output_buffer_index++)
+      for(short output_buffer_index=0; output_buffer_index < 255; output_buffer_index++)
       {
       
         model_input -> data.f[output_buffer_index] = mfcc_output[output_buffer_index];
@@ -1261,13 +1267,14 @@ void calculateInference()
     
       // Read predicted y value from output buffer (tensor)
       float inf_1 = model_output->data.f[0];
+      Serial.printf("Prediction : %f\n", inf_1);
 
       inference[inference_index]=inf_1;
   
-      if (inference_index == 7) inference_index = 0;
+      if (inference_index == 15) inference_index = 0;
       else            inference_index++;
   
-      for (unsigned short ind = 0; ind < 8; ind++)
+      for (unsigned short ind = 0; ind < 16; ind++)
       {
         
         sum_inference = sum_inference + inference[ind];
@@ -1423,7 +1430,10 @@ void calculateInference()
   
       sum_inference = 0;
   
-      for(short i = 16; i < 256; i++) mfcc_output[i-16] = mfcc_output[i];   // recalculer pour 16
+      for(short i = 16; i < 256; i++)
+      {
+        mfcc_output[i-16] = mfcc_output[i];
+      }
 
       window_index = 239; // 255 - 16
     }
