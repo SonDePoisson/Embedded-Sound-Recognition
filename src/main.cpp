@@ -52,6 +52,9 @@
 
 // To import model
 #include "../python_mfcc_gen_from_clement/all_targets_model_data.h" // pointer vers ton reseau
+
+// To I2S
+#include "driver/i2s.h"
                           
 //*****************************************************************************************************************
 // Contant(s)
@@ -101,6 +104,7 @@
 // #define SERIAL       38400
 #define SERIAL          115200
 #define CMDBUFFER_SIZE      64
+
 
 // VARIÃVEIS DO PROTOCOLO:
 /*
@@ -225,6 +229,13 @@ DEFAULT: 10
 #define CMDBUFFER_SIZE      32
 #define COMMAND_CONFIG      "A55AA5"
 
+// To I2S
+#define I2S_WS  25   // GPIO pin for Word Select signal
+#define I2S_SD  33   // GPIO pin for Serial Data signal
+#define I2S_SCK 32   // GPIO pin for Serial Clock signal
+#define I2S_PORT I2S_NUM_0
+#define bufferLen 8  // Number of buffers in the I2S buffer array
+
 //*****************************************************************************************************************
 // Prototype of the function(s)
 //*****************************************************************************************************************
@@ -239,11 +250,12 @@ void setupTFLite();
 void setupTimer();
 void disableTimer();
 void setupInterrupt();
-void setupCalibration();
+// void setupCalibration();
+void setupI2S();
 
 // To operate
 void calculateInference();
-void timerADC();
+void timerI2S();
 
 
 // To verifier
@@ -286,17 +298,17 @@ char processCharInput(char* cmdBuffer, const char c);
 // Global variable(s)
 //*****************************************************************************************************************               
 // To operate
-bool flagCalculateInference         = true;
-bool flagSendJson             = true;
-bool flagErroConnect            = true;
-bool flagShotDetect             = false;
-bool flagToTest               = false;
-bool flagToConfigureTMDev         = false;
-bool flagErrorData              = true;
+bool flagCalculateInference    = true;
+bool flagSendJson              = true;
+bool flagErroConnect           = true;
+bool flagShotDetect            = false;
+bool flagToTest                = false;
+bool flagToConfigureTMDev      = false;
+bool flagErrorData             = true;
         
 // To keepalive       
 int keepAliveCounter            = 0;
-unsigned long keepAliveTime         = 0;
+unsigned long keepAliveTime     = 0;
       
 // To converter String to char      
 // char SNvalue[MAX_SIZE_SN]        = "SNTESTE";
@@ -423,6 +435,11 @@ const int amostras              = 71429;              // Resulta em 1,027 segund
 //const int amostras            = 35715;              // Resulta em 0,514 segundos para cada atualizaÃ§Ã£o
 const float valueFix            = 0.150;
 int valueGainRate             = 50;
+
+
+// To I2S
+int16_t buffer1[bufferLen]; // Buffer to store the 16-bit audio samples
+bool flagI2S = false;
 
 // To message Json to send
 // Model 01:  MESSAGE DEFAULT
@@ -606,15 +623,16 @@ void setup()
   setupEEPROM();  
   Serial.println("Setup EEPROM done");
   // if(EEPROM.read(modeCalibration)  ==  0x00) setupCalibration();
-  
   // setupCalibration();
-  // Serial.println("Setup Calibration done"); // !!
+  Serial.println("Setup Calibration done"); // !!
   Serial.println("No Calibration ADC");
   setupMFCC();
   Serial.println("Setup MFCC done");
   setupTFLite();
   Serial.println("Setup TFLite done");
-  setupTimer(); // chqnger pour i2s
+  setupI2S();
+  Serial.println("Setup I2S done");
+  setupTimer(); 
   Serial.println("Setup Timer done");
   setupInterrupt();
   Serial.println("Setup Interrupt done");
@@ -893,7 +911,7 @@ void setupTFLite()
 
 void setupTimer()
 {
-  
+  Serial.println("Setup Timer");
   /* 
   InicializaÃ§Ã£o do timer. Parametros:
   0 - seleÃ§Ã£o do timer a ser usado, de 0 a 3.
@@ -902,14 +920,16 @@ void setupTimer()
   */
   timer = timerBegin(0, 80, true);
   
+  Serial.println("Start Interruption Timer");
   /*
   Conecta Ã  interrupÃ§Ã£o do timer
   - timer Ã© a instÃ¢ncia do hw_timer
   - endereÃ§o da funÃ§Ã£o a ser chamada pelo timer
   - edge = true gera uma interrupÃ§Ã£o
   */
-  timerAttachInterrupt(timer, &timerADC, true); // pointer veers la i2S
+  timerAttachInterrupt(timer, &timerI2S, true); // pointer veers la i2S
   
+  Serial.println("Setup Alarm Timer");
   /* 
   - o timer instanciado no inicio
   - o valor em us para 1s
@@ -917,6 +937,7 @@ void setupTimer()
   */
   timerAlarmWrite(timer, 125, true); 
   
+  Serial.println("Enable Alarm Timer");
   // Ativa o alarme
   timerAlarmEnable(timer);
   
@@ -959,6 +980,7 @@ void setupInterrupt()
 // Setup calibration
 //*****************************************************************************************************************
 
+/*
 void setupCalibration()
 {
   
@@ -1078,6 +1100,41 @@ void setupCalibration()
   digitalWrite(pinToLED,  LOW);
   
 } // end setupCalibration
+*/
+
+//*****************************************************************************************************************
+// Setup I2S
+//*****************************************************************************************************************
+
+void setupI2S()
+{
+  // Set up I2S Processor configuration
+  const i2s_config_t i2s_config = {
+    .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),                       // I2S mode: Master, Receive
+    .sample_rate = samplingRate,                                             // Sample rate
+    .bits_per_sample = i2s_bits_per_sample_t(16),                            // Bits per sample
+    .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,                             // Channel format: Only left channel
+    .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_STAND_I2S),    // Communication format: Standard I2S
+    .intr_alloc_flags = 0,                                                   // Interrupt allocation flags
+    .dma_buf_count = 8,                                                      // DMA buffer count
+    .dma_buf_len = bufferLen,                                                // Length of each DMA buffer
+    .use_apll = false                                                        // Use APLL for master clock
+  };
+
+  i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL);   // Install and configure the I2S driver
+
+  // Set I2S pin configuration
+  const i2s_pin_config_t pin_config = {
+    .bck_io_num = I2S_SCK,                // Serial Clock pin
+    .ws_io_num = I2S_WS,                  // Word Select pin
+    .data_out_num = -1,                   // Data output pin (not used in this case)
+    .data_in_num = I2S_SD                 // Serial Data pin
+  };
+
+  i2s_set_pin(I2S_PORT, &pin_config);     // Set the I2S pin configuration
+
+  i2s_start(I2S_PORT);                    // Start the I2S driver
+}
 
 //*****************************************************************************************************************
 //*****************************************************************************************************************
@@ -1097,6 +1154,7 @@ void setupCalibration()
 
 void loop()
 {
+  // Calibration
   /*
   if(!digitalRead(pinToCalibration))    flagToCalibration = true;
   if((!digitalRead(pinToCalibration)) &&  flagToCalibration)
@@ -1132,6 +1190,7 @@ void loop()
     
   } // end if  // Peut etre commenter cette calibration pour le moment
   */
+  // End Calibration 
 
   if(flagCalculateInference) calculateInference();
     
@@ -1225,6 +1284,17 @@ char processCharInput(char* cmdBuffer, const char c)
 
 void calculateInference()
 {
+  if(flagI2S)
+  { 
+    // Serial.println("I2S");
+    // if(Serial.available())
+    //   {
+        samplesBuffer[counter] = Serial.parseInt();
+        // Serial.printf("Serial[%d]: %d\n", counter, samplesBuffer[counter]);
+        counter++;
+      // }
+    flagI2S = false;
+  }
   
   if(buffer_full == 0x01)
   { 
@@ -1255,9 +1325,7 @@ void calculateInference()
       // Jogar a MFCC pro ponteiro do TFLite
       for(short output_buffer_index=0; output_buffer_index < 255; output_buffer_index++)
       {
-      
-        model_input -> data.f[output_buffer_index] = mfcc_output[output_buffer_index];
-        
+        model_input -> data.f[output_buffer_index] = mfcc_output[output_buffer_index]; 
       } // end for
       
       // Run inference
@@ -1272,17 +1340,17 @@ void calculateInference()
       inference[inference_index]=inf_1;
   
       if (inference_index == 15) inference_index = 0;
-      else            inference_index++;
+      else inference_index++;
   
       for (unsigned short ind = 0; ind < 16; ind++)
       {
         
         sum_inference = sum_inference + inference[ind];
               
-        Serial.print("Sum Inference 1 is: ");     // DEBUG Clement
+        // Serial.print("Sum Inference 1 is: ");     // DEBUG Clement
         // Serial1.print("Sum Inference 1 is: ");
         // Serial2.print("Sum Inference 1 is: ");
-        Serial.println(sum_inference);
+        // Serial.println(sum_inference);
         // Serial1.println(sum_inference);
         // Serial2.println(sum_inference);
 
@@ -1562,26 +1630,41 @@ void calculateInference()
 // Function to timer
 //*****************************************************************************************************************
 
-void timerADC()
-{
-  
-  if(counter < FFT_SIZE)  
+void timerI2S()
+{ 
+  if((counter < FFT_SIZE))
   {
+    // I2S read
+    /*
+    size_t bytesIn = 0;
+    i2s_read(I2S_PORT, buffer1, bufferLen*2, &bytesIn, portMAX_DELAY);
 
-    samplesBuffer[counter]  =(double) 16*(analogRead(pinReadADC01)-1835);
-    counter++;
+    for(int i = 0; i < bytesIn; i++)
+    {
+      samplesBuffer[counter] = buffer1[i];
+      counter++;
+    } // end for
+    */
     
+    // Serial read
+    // if(Serial.available())
+    // {
+    //   samplesBuffer[counter] = Serial.parseInt();
+    //   Serial.printf("Serial: %d\n", samplesBuffer[counter]);
+    //   counter++;
+    // }
+
+    flagI2S = true;
+
   } // end if
-  
   else
   {
-  
-    counter   = 0;  
+    counter = 0;  
     buffer_full = 0x01;
-  
   } // end else
   
-} // end timerADC
+} // end timerI2S
+
 
 
 
@@ -1609,16 +1692,16 @@ void sendJsonDefaut()
   if(EEPROM.read(modeOperation) == 0x01)  
   {
     
-    Serial2.write(msg);
-    Serial2.write("\n");
+    // Serial2.write(msg);      // UNCOMMENT !
+    // Serial2.write("\n");
     
   } // end if
   
   else
   {
     
-    Serial.write(msg);
-    Serial.write("\n");   
+    // Serial.write(msg);       // UNCOMMENT !
+    // Serial.write("\n");   
   
   } // end else
   
